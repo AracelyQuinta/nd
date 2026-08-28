@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% set es_cotizacion = (factura.tipo == 'Cotizacion') %}
+
+{% block titulo %}
+    {{ 'Cotización Comercial ' ~ factura.numero if es_cotizacion else 'Factura Digital ' ~ factura.numero }} - Nexo Digital
+{% endblock %}
+
+{% block content %}
+<section class="py-3 btn-print-hide bg-light border-bottom">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <a href="{{ url_for('facturacion') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Volver al Listado
+            </a>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('editar_factura', id=id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil-square me-1"></i>Editar Datos
+            </a>
+            <button type="button" class="btn btn-verde btn-sm" onclick="window.print();">
+                <i class="bi bi-printer-fill me-1"></i>Imprimir / Guardar PDF
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container" style="max-width: 860px;">
+        <div class="card p-4 p-md-5 shadow-sm border rounded-4 bg-white">
+            
+            <!-- Encabezado del Documento -->
+            <div class="row align-items-center justify-content-between pb-4 border-bottom g-3">
+                <div class="col-sm-7">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="brand-badge"><i class="bi bi-lightning-charge-fill"></i></span>
+                        <span class="h4 mb-0 fw-bold text-navy">Nexo<span class="text-mint">Digital</span></span>
+                    </div>
+                    <p class="text-muted small mb-0">Soluciones Tecnológicas & Desarrollo Web para Negocios</p>
+                    <p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>Quito / Puyo — Ecuador</p>
+                    <p class="text-muted small mb-0"><i class="bi bi-envelope me-1"></i>nexodigital.ec@gmail.com | 📱 096 977 3007</p>
+                </div>
+
+                <div class="col-sm-5 text-sm-end">
+                    {% if es_cotizacion %}
+                        <span class="badge bg-info text-dark px-3 py-2 text-uppercase mb-2 font-monospace fw-bold">PROFORMA / COTIZACIÓN</span>
+                    {% else %}
+                        <span class="badge bg-navy text-white px-3 py-2 text-uppercase mb-2 font-monospace fw-bold">FACTURA DE VENTA</span>
+                    {% endif %}
+
+                    <h3 class="h4 fw-bold text-navy mb-1 font-monospace">{{ factura.numero }}</h3>
+                    <p class="text-muted small mb-1"><strong>Fecha de emisión:</strong> {{ factura.fecha }}</p>
+                    
+                    {% if es_cotizacion and factura.validez %}
+                        <p class="text-muted small mb-1"><strong>Validez de la oferta:</strong> {{ factura.validez }}</p>
+                    {% endif %}
+
+                    <div class="mt-2">
+                        {% if factura.estado in ["Pagada", "Aprobada"] %}
+                            <span class="badge badge-disponible px-3 py-2">
+                                <i class="bi bi-check-circle-fill me-1"></i>{{ factura.estado|upper }}
+                            </span>
+                        {% elif factura.estado in ["Pendiente", "En revision"] %}
+                            <span class="badge badge-proximamente px-3 py-2">
+                                <i class="bi bi-hourglass-split me-1"></i>{{ factura.estado|upper }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-vencida px-3 py-2">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ factura.estado|upper }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos del Cliente -->
+            <div class="row py-3 border-bottom bg-light rounded-3 my-4 p-3 g-2">
+                <div class="col-sm-7">
+                    <small class="text-muted text-uppercase fw-semibold d-block">
+                        {{ 'Propuesta presentada a:' if es_cotizacion else 'Facturado a:' }}
+                    </small>
+                    <h4 class="h5 fw-bold text-navy mb-0">{{ factura.cliente }}</h4>
+                    <span class="small text-muted">Cliente comercial de NexoDigital</span>
+                </div>
+                <div class="col-sm-5 text-sm-end">
+                    <small class="text-muted text-uppercase fw-semibold d-block">Modalidad:</small>
+                    <span class="fw-semibold text-dark">Desarrollo Web & Asesoría Digital</span>
+                </div>
+            </div>
+
+            <!-- Tabla de Ítems / Servicios -->
+            <div class="table-responsive mb-4">
+                <table class="table align-middle custom-table">
+                    <thead>
+                        <tr>
+                            <th class="ps-3 py-2" style="width: 40px;">#</th>
+                            <th class="py-2">Servicio / Concepto</th>
+                            <th class="py-2 text-center" style="width: 80px;">Cant.</th>
+                            <th class="py-2 text-end" style="width: 120px;">Precio Base</th>
+                            <th class="py-2 text-end" style="width: 130px;">Ajuste/Urgencia</th>
+                            <th class="py-2 text-end pe-3" style="width: 120px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if factura.servicios_detalle and factura.servicios_detalle|length > 0 %}
+                            {% for item in factura.servicios_detalle %}
+                            <tr>
+                                <td class="ps-3 text-muted">{{ loop.index }}</td>
+                                <td class="fw-semibold text-navy">{{ item.servicio }}</td>
+                                <td class="text-center">{{ item.cantidad or 1 }}</td>
+                                <td class="text-end">${{ "%.2f"|format(item.precio or 0.0) }}</td>
+                                <td class="text-end text-muted">${{ "%.2f"|format(item.ajuste or 0.0) }}</td>
+                                <td class="text-end pe-3 fw-bold text-navy">${{ "%.2f"|format(item.total or 0.0) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td class="ps-3 text-muted">1</td>
+                                <td class="fw-semibold text-navy">Servicios digitales contratados</td>
+                                <td class="text-center">1</td>
+                                <td class="text-end">${{ "%.2f"|format(factura.monto) }}</td>
+                                <td class="text-end text-muted">$0.00</td>
+                                <td class="text-end pe-3 fw-bold text-navy">${{ "%.2f"|format(factura.monto) }}</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cuadro de Totales, Anticipos y Saldos Pendientes (Diferencia Real) -->
+            <div class="row justify-content-between g-4">
+                <!-- Columna Izquierda: Notas y Condiciones de Pago -->
+                <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border h-100">
+                        <span class="small text-muted fw-bold text-uppercase d-block mb-1">
+                            {{ 'Condiciones de la Cotización:' if es_cotizacion else 'Términos y Garantía:' }}
+                        </span>
+                        <p class="small text-dark mb-0">
+                            {{ factura.notas or ('Propuesta válida por 15 días. Se requiere un anticipo para iniciar desarrollo y el saldo se cancela contra entrega.' if es_cotizacion else 'Comprobante de servicios digitales con garantía de soporte técnico por 30 días.') }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Liquidación Financiera con Anticipo y Saldo -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="text-muted small">Subtotal:</span>
+                            <span class="fw-semibold text-navy">${{ "%.2f"|format(factura.subtotal or factura.monto) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="text-muted small">IVA (15%):</span>
+                            <span class="fw-semibold text-navy">${{ "%.2f"|format(factura.iva or 0.0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="fw-bold text-navy">TOTAL {{ 'DE LA PROPUESTA' if es_cotizacion else 'GENERAL' }}:</span>
+                            <span class="fw-bold text-navy fs-6">${{ "%.2f"|format(factura.monto) }} USD</span>
+                        </div>
+
+                        <!-- Anticipo Abonado -->
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="text-muted small">Anticipo / Abono Recibido:</span>
+                            <span class="fw-bold text-emerald">-${{ "%.2f"|format(factura.anticipo or 0.0) }}</span>
+                        </div>
+
+                        <!-- Saldo Pendiente (Diferencia Real) -->
+                        {% set saldo_val = factura.saldo_pendiente if factura.saldo_pendiente is defined else (factura.monto - (factura.anticipo or 0.0)) %}
+                        <div class="d-flex justify-content-between pt-2">
+                            <div>
+                                <span class="h6 fw-bold text-dark mb-0 d-block">SALDO PENDIENTE:</span>
+                                <small class="text-muted" style="font-size: 0.75rem;">(Diferencia a cobrar contra entrega)</small>
+                            </div>
+                            <div class="text-end">
+                                {% if saldo_val > 0 %}
+                                    <span class="h5 fw-bold text-danger mb-0">${{ "%.2f"|format(saldo_val) }} USD</span>
+                                {% else %}
+                                    <span class="h6 fw-bold text-success mb-0">$0.00 (Totalmente Liquidado)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie del Documento -->
+            <div class="border-top mt-5 pt-4 text-center text-muted small">
+                <p class="mb-1">Gracias por confiar en <strong>NexoDigital</strong> para potenciar tu presencia en Internet.</p>
+                <p class="mb-0">
+                    {{ 'Documento comercial emitido para fines de cotización y presupuesto.' if es_cotizacion else 'Comprobante electrónico de venta emitido por NexoDigital.' }}
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

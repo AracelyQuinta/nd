@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ 'Editar Cliente' if editando else 'Registrar Cliente' }} - Nexo Digital{% endblock %}
+
+{% block content %}
+<section class="page-header py-4 text-white">
+    <div class="container text-center">
+        <h1 class="h3 fw-bold mb-1">{{ 'Editar Cliente' if editando else 'Registrar Nuevo Cliente' }}</h1>
+        <p class="text-light-emerald small mb-0">
+            {{ 'Modifica la información del cliente o negocio' if editando else 'Agrega un nuevo cliente o negocio a la base de datos' }}
+        </p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="card form-card shadow-sm border-0 rounded-4">
+                    <div class="card-header bg-white p-4 border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-icon-box">
+                                <i class="bi {{ 'bi-pencil-square' if editando else 'bi-person-plus-fill' }}"></i>
+                            </div>
+                            <div>
+                                <h2 class="h5 fw-bold text-navy mb-0">{{ 'Modificar Datos' if editando else 'Datos del Cliente' }}</h2>
+                                <small class="text-muted">Todos los campos son obligatorios</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <form method="POST" novalidate>
+                            {{ form.hidden_tag() }}
+
+                            <div class="mb-3">
+                                {{ form.nombre.label(class="form-label fw-semibold text-navy") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                                    {{ form.nombre(class="form-control" + (" is-invalid" if form.nombre.errors else ""), placeholder="Ej: Panadería El Trigal") }}
+                                </div>
+                                {% for error in form.nombre.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.negocio.label(class="form-label fw-semibold text-navy") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                                    {{ form.negocio(class="form-control" + (" is-invalid" if form.negocio.errors else ""), placeholder="Ej: Panadería y Pastelería") }}
+                                </div>
+                                {% for error in form.negocio.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.servicio.label(class="form-label fw-semibold text-navy") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-gear"></i></span>
+                                    {{ form.servicio(class="form-control" + (" is-invalid" if form.servicio.errors else ""), placeholder="Ej: Página web + Menú QR") }}
+                                </div>
+                                {% for error in form.servicio.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-4">
+                                {{ form.ciudad.label(class="form-label fw-semibold text-navy") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
+                                    {{ form.ciudad(class="form-control" + (" is-invalid" if form.ciudad.errors else ""), placeholder="Ej: Santo Domingo, Quito, etc.") }}
+                                </div>
+                                {% for error in form.ciudad.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex gap-2 pt-2">
+                                <a href="{{ url_for('clientes') }}" class="btn btn-outline-secondary px-4">
+                                    <i class="bi bi-arrow-left me-1"></i>Volver
+                                </a>
+                                <button type="submit" class="btn btn-verde flex-grow-1 py-2">
+                                    <i class="bi {{ 'bi-check2-circle' if editando else 'bi-person-check' }} me-1"></i>
+                                    {{ 'Actualizar cliente' if editando else 'Guardar cliente' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

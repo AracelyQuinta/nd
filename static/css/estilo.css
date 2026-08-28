@@ -1,0 +1,422 @@
+/* ==========================================================================
+   NEXODIGITAL - Hoja de Estilos Principal (Diseño Comercial Profesional & WCAG AAA)
+   ========================================================================== */
+
+:root {
+    /* Paleta de Marca de Alto Contraste */
+    --navy: #0A2540;
+    --navy-dark: #06182a;
+    --navy-light: #133c63;
+    --navy-subtle: #e6edf5;
+
+    --emerald: #10b981;
+    --emerald-dark: #047857;
+    --emerald-subtle: #d1fae5;
+    --emerald-text: #065f46;
+    --mint-bright: #34d399;
+
+    --amber: #f59e0b;
+    --amber-subtle: #fef3c7;
+    --amber-text: #92400e;
+
+    --rose: #ef4444;
+    --rose-subtle: #fee2e2;
+    --rose-text: #991b1b;
+
+    /* Fondo y Textos - WCAG AAA Contrast */
+    --bg-body: #f8fafc;
+    --bg-card: #ffffff;
+    --text-heading: #0f172a;  /* Slate-900 */
+    --text-body: #334155;     /* Slate-700 */
+    --text-muted: #64748b;    /* Slate-500 */
+    --border-color: #e2e8f0;
+
+    /* Radios y Sombras */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+    --shadow-hover: 0 10px 24px rgba(15, 23, 42, 0.10);
+}
+
+/* Base y Tipografía Global */
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Colores Utilitarios */
+.bg-navy { background-color: var(--navy) !important; }
+.bg-navy-light { background-color: var(--navy-light) !important; }
+.bg-emerald { background-color: var(--emerald) !important; color: #ffffff !important; }
+.bg-emerald-subtle { background-color: var(--emerald-subtle) !important; }
+.bg-soft { background-color: #f1f5f9 !important; }
+
+.text-navy { color: var(--navy) !important; }
+.text-emerald { color: var(--emerald-dark) !important; }
+.text-mint { color: var(--mint-bright) !important; }
+.text-light-emerald { color: #a7f3d0 !important; }
+.text-light-muted { color: #cbd5e1 !important; }
+.tracking-wider { letter-spacing: 0.08em; }
+
+/* Títulos con Contraste Seguro */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-heading);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+}
+
+/* ==========================================================================
+   Barra de Navegación Limpia y Profesional (Sin envolver textos)
+   ========================================================================== */
+.navbar {
+    background-color: var(--navy);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+}
+
+.navbar-brand {
+    font-size: 1.25rem;
+    color: #ffffff !important;
+    white-space: nowrap;
+}
+
+.nav-link {
+    color: #e2e8f0 !important;
+    font-weight: 500;
+    font-size: 0.92rem;
+    padding: 0.45rem 0.85rem !important;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.nav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(16, 185, 129, 0.2);
+    font-weight: 600;
+    border-bottom: 2px solid var(--mint-bright);
+}
+
+/* Encabezados Hero y Página */
+.hero-section,
+.page-header {
+    background: linear-gradient(135deg, #06182a 0%, #0A2540 60%, #047857 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section h1,
+.page-header h1 {
+    color: #ffffff !important;
+}
+
+/* Botones de Marca */
+.btn-verde {
+    background-color: var(--emerald);
+    color: #ffffff !important;
+    border-radius: 50px;
+    border: none;
+    font-weight: 600;
+    padding: 0.6rem 1.4rem;
+    transition: all 0.2s ease;
+}
+
+.btn-verde:hover,
+.btn-verde:focus {
+    background-color: var(--emerald-dark);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.btn-outline-brand {
+    border: 1.5px solid var(--emerald);
+    color: var(--emerald-dark);
+    font-weight: 600;
+    border-radius: 50px;
+    padding: 0.45rem 1.25rem;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-brand:hover {
+    background-color: var(--emerald);
+    color: #ffffff;
+    border-color: var(--emerald);
+    transform: translateY(-1px);
+}
+
+/* Tarjetas (Cards) */
+.card {
+    border-radius: var(--radius-md);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-card {
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover) !important;
+    border-color: #86efac;
+}
+
+/* Imágenes de Tarjetas de Servicio */
+.card-img-wrapper {
+    height: 180px;
+    overflow: hidden;
+    position: relative;
+    background-color: #0A2540;
+}
+
+.card-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.service-card:hover .card-img-wrapper img {
+    transform: scale(1.04);
+}
+
+.price-tag {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(10, 37, 64, 0.94);
+    color: #ffffff;
+    padding: 0.3rem 0.75rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.price-tag span {
+    color: var(--mint-bright);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.time-badge {
+    background-color: #f1f5f9;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Badges de Estado Semánticos */
+.badge-disponible {
+    background-color: var(--emerald-subtle) !important;
+    color: var(--emerald-text) !important;
+    font-weight: 600;
+    border: 1px solid #86efac;
+}
+
+.badge-proximamente {
+    background-color: var(--amber-subtle) !important;
+    color: var(--amber-text) !important;
+    font-weight: 600;
+    border: 1px solid #fcd34d;
+}
+
+.badge-vencida {
+    background-color: var(--rose-subtle) !important;
+    color: var(--rose-text) !important;
+    font-weight: 600;
+    border: 1px solid #fca5a5;
+}
+
+/* Íconos y Cajas */
+.service-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background-color: var(--emerald-subtle);
+    color: var(--emerald-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.form-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background-color: var(--navy);
+    color: var(--mint-bright);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+/* ==========================================================================
+   Tablas y Formularios de Facturación / Cotización (Espaciosos y Limpios)
+   ========================================================================== */
+.custom-table thead th {
+    background-color: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    border-bottom: 2px solid #cbd5e1;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.85rem 0.75rem;
+}
+
+.custom-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.table-builder td {
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
+}
+
+/* Inputs de Facturación con Ancho Seguro para no recortar textos ni cifras */
+.input-item-nombre {
+    min-width: 240px;
+    font-size: 0.9rem;
+}
+
+.input-item-precio {
+    min-width: 110px;
+    font-size: 0.9rem;
+}
+
+.input-item-cantidad {
+    width: 70px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.input-item-ajuste {
+    min-width: 110px;
+    font-size: 0.9rem;
+}
+
+.input-group-clean {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.input-group-clean .input-group-text {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: 8px;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    font-size: 0.92rem;
+    color: var(--text-heading);
+    background-color: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--emerald);
+    box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.18);
+}
+
+/* Cuadro de Saldo Pendiente y Anticipo */
+.box-anticipo {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+}
+
+.saldo-alerta {
+    border-left: 4px solid var(--amber);
+    background-color: #fffbeb;
+    padding: 0.65rem 0.85rem;
+    border-radius: 6px;
+}
+
+.saldo-liquidado {
+    border-left: 4px solid var(--emerald);
+    background-color: #ecfdf5;
+    padding: 0.65rem 0.85rem;
+    border-radius: 6px;
+}
+
+/* Tarjetas de acceso rápido en el modal del sistema */
+.service-shortcut-card {
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+}
+
+.service-shortcut-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover) !important;
+    border-color: var(--emerald) !important;
+    background-color: #f8fafc;
+}
+
+/* Footer */
+.footer-custom {
+    background-color: var(--navy);
+    border-top: 3px solid var(--emerald);
+}
+
+/* Estilos de Impresión para Comprobantes y Cotizaciones */
+@media print {
+    .navbar, .footer-custom, .btn-print-hide, .page-header {
+        display: none !important;
+    }
+    body {
+        background-color: #ffffff !important;
+        font-size: 11pt;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}

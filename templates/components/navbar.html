@@ -1,0 +1,51 @@
+<!-- Barra de Navegación Principal -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-navy sticky-top shadow-sm py-2">
+    <div class="container">
+        <!-- Logotipo / Marca -->
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2 py-1" href="{{ url_for('inicio') }}">
+            <span class="brand-badge"><i class="bi bi-lightning-charge-fill"></i></span>
+            <span class="text-white">Nexo<span class="text-mint">Digital</span></span>
+        </a>
+
+        <!-- Botón Toggle Responsive -->
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav" aria-controls="menuNav" aria-expanded="false" aria-label="Alternar navegación">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Enlaces de Navegación -->
+        <div class="collapse navbar-collapse" id="menuNav">
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                <li class="nav-item">
+                    <a class="nav-link px-2 {{ 'active' if request.endpoint == 'inicio' else '' }}" href="{{ url_for('inicio') }}">
+                        <i class="bi bi-house-door me-1"></i>Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['servicios', 'nuevo_servicio', 'editar_servicio'] else '' }}" href="{{ url_for('servicios') }}">
+                        <i class="bi bi-grid me-1"></i>Servicios
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['proveedores', 'nuevo_proveedor', 'editar_proveedor'] else '' }}" href="{{ url_for('proveedores') }}">
+                        <i class="bi bi-truck me-1"></i>Proveedores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['clientes', 'nuevo_cliente', 'editar_cliente'] else '' }}" href="{{ url_for('clientes') }}">
+                        <i class="bi bi-people me-1"></i>Clientes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['facturacion', 'nueva_factura', 'editar_factura', 'ver_comprobante'] else '' }}" href="{{ url_for('facturacion') }}">
+                        <i class="bi bi-receipt me-1"></i>Facturación & Cotizaciones
+                    </a>
+                </li>
+                <li class="nav-item ms-lg-2">
+                    <a class="btn btn-verde btn-sm px-3 rounded-pill" href="{{ url_for('inicio') }}#contacto">
+                        <i class="bi bi-envelope me-1"></i>Contacto
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

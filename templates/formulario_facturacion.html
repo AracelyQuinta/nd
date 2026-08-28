@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ 'Editar Documento' if editando else 'Nuevo Comprobante / Cotización' }} - Nexo Digital{% endblock %}
+
+{% block content %}
+<section class="page-header py-4 text-white">
+    <div class="container text-center">
+        <h1 class="h3 fw-bold mb-1" id="tituloEncabezado">
+            {% if editando %}
+                Editar {{ 'Cotización' if form.tipo.data == 'Cotizacion' else 'Factura' }} #{{ form.numero.data }}
+            {% else %}
+                Generar Factura o Cotización Comercial
+            {% endif %}
+        </h1>
+        <p class="text-light-emerald small mb-0">
+            Calcula en tiempo real según los servicios requeridos, ajusta precios por complejidad o urgencia y gestiona anticipos y saldos pendientes.
+        </p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <form method="POST" id="formFacturacionDinamica" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="row g-4">
+                <!-- Columna Izquierda: Datos del Documento y Tabla de Servicios -->
+                <div class="col-lg-8">
+                    <!-- Tarjeta 1: Tipo de Documento y Cabecera -->
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-header bg-white p-4 border-bottom">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="form-icon-box">
+                                        <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="h5 fw-bold text-navy mb-0">Datos del Documento</h2>
+                                        <small class="text-muted">Define si es una Factura de Venta o una Cotización / Proforma</small>
+                                    </div>
+                                </div>
+
+                                <!-- Selector de Tipo de Documento -->
+                                <div class="btn-group" role="group" aria-label="Tipo de documento">
+                                    {{ form.tipo(class="form-select fw-semibold border-emerald", id="selectTipoDoc") }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.numero.label(class="form-label fw-semibold text-navy small", id="lblNumeroDoc") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-hash"></i></span>
+                                        {{ form.numero(class="form-control font-monospace" + (" is-invalid" if form.numero.errors else ""), placeholder="001-001-0001", id="inputNumeroDoc") }}
+                                    </div>
+                                    {% for error in form.numero.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="col-md-6">
+                                    {{ form.fecha.label(class="form-label fw-semibold text-navy small") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                                        {{ form.fecha(class="form-control" + (" is-invalid" if form.fecha.errors else ""), type="date") }}
+                                    </div>
+                                    {% for error in form.fecha.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="col-md-8">
+                                    {{ form.cliente.label(class="form-label fw-semibold text-navy small") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                        {{ form.cliente(class="form-control" + (" is-invalid" if form.cliente.errors else ""), placeholder="Nombre del cliente o empresa", list="clientesDatalist") }}
+                                    </div>
+                                    <datalist id="clientesDatalist">
+                                        {% for c in clientes_registrados %}
+                                            <option value="{{ c.nombre }}">({{ c.negocio }} — {{ c.ciudad }})</option>
+                                        {% endfor %}
+                                    </datalist>
+                                    {% for error in form.cliente.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="col-md-4">
+                                    {{ form.validez.label(class="form-label fw-semibold text-navy small") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-clock-history"></i></span>
+                                        {{ form.validez(class="form-control", placeholder="Ej: 15 días calendario") }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    {{ form.estado.label(class="form-label fw-semibold text-navy small") }}
+                                    {{ form.estado(class="form-select", id="selectEstadoDoc") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta 2: Detalle de Servicios / Ítems -->
+                    <div class="card shadow-sm border-0 rounded-4">
+                        <div class="card-header bg-white p-4 border-bottom">
+                            <h3 class="h5 fw-bold text-navy mb-1">Servicios a Incluir</h3>
+                            <small class="text-muted">Selecciona del catálogo o añade servicios personalizados ajustando precios y recargos</small>
+                        </div>
+
+                        <div class="card-body p-4">
+                            <!-- Selector del Catálogo -->
+                            <div class="p-3 bg-light rounded-3 border mb-4">
+                                <label class="form-label fw-semibold text-navy small mb-2">
+                                    <i class="bi bi-plus-circle-fill text-emerald me-1"></i>Agregar servicio desde el catálogo de tarifas
+                                </label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-9">
+                                        <select id="selectorCatalogo" class="form-select">
+                                            <option value="">-- Selecciona un servicio del catálogo --</option>
+                                            {% for s in servicios_catalogo %}
+                                                <option value="{{ loop.index0 }}"
+                                                        data-nombre="{{ s.nombre }}"
+                                                        data-precio="{{ s.precio or 0.0 }}"
+                                                        data-tiempo="{{ s.tiempo_estimado or '' }}"
+                                                        {% if servicio_seleccionado_id is defined and servicio_seleccionado_id == loop.index0 %}selected{% endif %}>
+                                                    {{ s.nombre }} — ${{ "%.2f"|format(s.precio or 0.0) }} ({{ s.tiempo_estimado or '2 a 5 días' }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-verde w-100" id="btnAgregarServicio">
+                                            <i class="bi bi-plus-lg me-1"></i>Agregar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabla de Líneas con Anchos Cómodos sin cortes -->
+                            <div class="table-responsive">
+                                <table class="table align-middle custom-table table-builder mb-0" id="tablaDetalleFactura">
+                                    <thead>
+                                        <tr>
+                                            <th style="min-width: 240px;">Servicio / Concepto</th>
+                                            <th style="width: 140px;">Precio Unit. ($)</th>
+                                            <th style="width: 80px;" class="text-center">Cant.</th>
+                                            <th style="width: 140px;">Recargo Demora ($)</th>
+                                            <th style="width: 120px;" class="text-end">Total ($)</th>
+                                            <th style="width: 45px;" class="text-center"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpoTablaItems">
+                                        <!-- Se inyectan filas con JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div id="mensajeSinItems" class="text-center py-4 text-muted small">
+                                <i class="bi bi-cart-x fs-3 d-block mb-1 text-secondary"></i>
+                                No hay servicios agregados a la lista todavía. Selecciona uno arriba para comenzar.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Liquidación, Anticipos y Saldos Pendientes -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 80px;">
+                        <div class="card-header bg-navy text-white p-4">
+                            <h3 class="h5 fw-bold mb-0 text-white d-flex align-items-center justify-content-between">
+                                <span id="lblTituloPanel">Liquidación Comercial</span>
+                                <i class="bi bi-calculator"></i>
+                            </h3>
+                        </div>
+
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                <span class="text-muted small">Subtotal:</span>
+                                <span class="fw-bold text-navy" id="lblSubtotal">$0.00</span>
+                            </div>
+
+                            <div class="mb-2 pb-2 border-bottom">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="chkIva" checked>
+                                    <label class="form-check-label fw-semibold text-navy small" for="chkIva">
+                                        Aplicar IVA (15% Ecuador)
+                                    </label>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small">Monto IVA (15%):</span>
+                                    <span class="fw-semibold text-dark small" id="lblIva">$0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Total General -->
+                            <div class="p-3 bg-light rounded-3 mb-3 text-center border">
+                                <span class="text-uppercase fw-bold text-muted small d-block">Total del Proyecto</span>
+                                <span class="fs-3 fw-bold text-navy" id="lblTotal">$0.00</span>
+                            </div>
+
+                            <!-- Módulo de Anticipo y Saldo Pendiente (Diferencia Real) -->
+                            <div class="box-anticipo mb-3">
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-navy small mb-1">
+                                        <i class="bi bi-cash-coin text-emerald me-1"></i>Anticipo / Abono Recibido ($)
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.anticipo(class="form-control fw-bold", id="inputAnticipo", step="0.01", min="0", value="0.00") }}
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Monto pagado por el cliente por adelantado.</small>
+                                </div>
+
+                                <div id="boxDiferencia" class="saldo-alerta mt-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="small fw-bold text-dark">Saldo Pendiente (Diferencia):</span>
+                                        <span class="fw-bold fs-6 text-danger" id="lblSaldoPendiente">$0.00</span>
+                                    </div>
+                                    <small class="d-block text-muted mt-1" id="lblTextoSaldo" style="font-size: 0.75rem;">
+                                        Monto pendiente a cobrar contra entrega.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Inputs Reales Ocultos -->
+                            {{ form.subtotal(id="inputSubtotal", type="hidden") }}
+                            {{ form.iva(id="inputIva", type="hidden") }}
+                            {{ form.monto(id="inputMonto", type="hidden") }}
+                            {{ form.saldo_pendiente(id="inputSaldoPendiente", type="hidden") }}
+
+                            <div class="mb-3">
+                                {{ form.notas.label(class="form-label fw-semibold text-navy small") }}
+                                {{ form.notas(class="form-control", rows="2", placeholder="Ej: 50% de anticipo para iniciar, 50% al entregar con dominio y hosting.") }}
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-verde py-2 fw-semibold" id="btnGuardarFactura">
+                                    <i class="bi bi-check2-circle me-1"></i>
+                                    {{ 'Actualizar Documento' if editando else 'Guardar y Emitir Documento' }}
+                                </button>
+                                <a href="{{ url_for('facturacion') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-arrow-left me-1"></i>Cancelar y Volver
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- JavaScript Reactivo de Facturación y Cotización -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    let itemsFactura = [];
+
+    {% if detalle_existente and detalle_existente|length > 0 %}
+        itemsFactura = {{ detalle_existente | tojson }};
+    {% endif %}
+
+    const selectTipoDoc = document.getElementById("selectTipoDoc");
+    const inputNumeroDoc = document.getElementById("inputNumeroDoc");
+    const lblTituloPanel = document.getElementById("lblTituloPanel");
+    const selectorCatalogo = document.getElementById("selectorCatalogo");
+    const btnAgregar = document.getElementById("btnAgregarServicio");
+    const cuerpoTabla = document.getElementById("cuerpoTablaItems");
+    const mensajeSinItems = document.getElementById("mensajeSinItems");
+
+    const lblSubtotal = document.getElementById("lblSubtotal");
+    const lblIva = document.getElementById("lblIva");
+    const lblTotal = document.getElementById("lblTotal");
+    const chkIva = document.getElementById("chkIva");
+
+    const inputSubtotal = document.getElementById("inputSubtotal");
+    const inputIva = document.getElementById("inputIva");
+    const inputMonto = document.getElementById("inputMonto");
+    const inputAnticipo = document.getElementById("inputAnticipo");
+    const inputSaldoPendiente = document.getElementById("inputSaldoPendiente");
+    const lblSaldoPendiente = document.getElementById("lblSaldoPendiente");
+    const boxDiferencia = document.getElementById("boxDiferencia");
+    const lblTextoSaldo = document.getElementById("lblTextoSaldo");
+    const inputJson = document.getElementById("servicios_json");
+
+    // Renderizar filas de la tabla con campos espaciosos
+    function renderizarTabla() {
+        cuerpoTabla.innerHTML = "";
+
+        if (itemsFactura.length === 0) {
+            mensajeSinItems.classList.remove("d-none");
+        } else {
+            mensajeSinItems.classList.add("d-none");
+
+            itemsFactura.forEach((item, index) => {
+                const tr = document.createElement("tr");
+
+                const precioBase = parseFloat(item.precio) || 0;
+                const cantidad = parseInt(item.cantidad) || 1;
+                const ajuste = parseFloat(item.ajuste) || 0;
+                const lineaTotal = (precioBase + ajuste) * cantidad;
+                item.total = lineaTotal;
+
+                tr.innerHTML = `
+                    <td>
+                        <input type="text" class="form-control form-control-sm fw-semibold input-item-nombre item-nombre" value="${item.servicio}" data-index="${index}">
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm input-group-clean">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" min="0" class="form-control input-item-precio item-precio" value="${precioBase.toFixed(2)}" data-index="${index}">
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <input type="number" min="1" class="form-control form-control-sm input-item-cantidad item-cantidad" value="${cantidad}" data-index="${index}">
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm input-group-clean">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" class="form-control input-item-ajuste item-ajuste" value="${ajuste.toFixed(2)}" data-index="${index}">
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold text-navy">
+                        $${lineaTotal.toFixed(2)}
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle btn-eliminar-item" data-index="${index}" title="Eliminar línea">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </td>
+                `;
+
+                cuerpoTabla.appendChild(tr);
+            });
+        }
+
+        recalcularTotales();
+    }
+
+    // Recalcular Subtotal, IVA, Total, Anticipo y Saldo Pendiente (Diferencia)
+    function recalcularTotales() {
+        let subtotal = 0;
+        itemsFactura.forEach(item => {
+            const p = parseFloat(item.precio) || 0;
+            const q = parseInt(item.cantidad) || 1;
+            const a = parseFloat(item.ajuste) || 0;
+            subtotal += (p + a) * q;
+        });
+
+        const aplicaIva = chkIva.checked;
+        const iva = aplicaIva ? (subtotal * 0.15) : 0;
+        const total = subtotal + iva;
+
+        const anticipo = parseFloat(inputAnticipo.value) || 0;
+        const saldo = Math.max(0, total - anticipo);
+
+        lblSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+        lblIva.textContent = `$${iva.toFixed(2)}`;
+        lblTotal.textContent = `$${total.toFixed(2)}`;
+        lblSaldoPendiente.textContent = `$${saldo.toFixed(2)}`;
+
+        if (saldo === 0 && total > 0) {
+            boxDiferencia.className = "saldo-liquidado mt-2";
+            lblSaldoPendiente.className = "fw-bold fs-6 text-success";
+            lblTextoSaldo.textContent = "✅ Totalmente cancelado (Sin saldo pendiente).";
+        } else {
+            boxDiferencia.className = "saldo-alerta mt-2";
+            lblSaldoPendiente.className = "fw-bold fs-6 text-danger";
+            lblTextoSaldo.textContent = "⚠️ Saldo pendiente a liquidar contra entrega.";
+        }
+
+        inputSubtotal.value = subtotal.toFixed(2);
+        inputIva.value = iva.toFixed(2);
+        inputMonto.value = total > 0 ? total.toFixed(2) : "0.01";
+        inputSaldoPendiente.value = saldo.toFixed(2);
+        inputJson.value = JSON.stringify(itemsFactura);
+    }
+
+    // Eventos
+    btnAgregar.addEventListener("click", () => {
+        const opt = selectorCatalogo.options[selectorCatalogo.selectedIndex];
+        if (!opt || !opt.value) {
+            alert("Por favor selecciona un servicio del catálogo para agregarlo.");
+            return;
+        }
+
+        itemsFactura.push({
+            servicio: opt.getAttribute("data-nombre"),
+            precio: parseFloat(opt.getAttribute("data-precio")) || 0,
+            cantidad: 1,
+            ajuste: 0.0,
+            total: parseFloat(opt.getAttribute("data-precio")) || 0
+        });
+
+        renderizarTabla();
+    });
+
+    cuerpoTabla.addEventListener("input", (e) => {
+        const index = e.target.getAttribute("data-index");
+        if (index === null) return;
+
+        if (e.target.classList.contains("item-nombre")) {
+            itemsFactura[index].servicio = e.target.value;
+        } else if (e.target.classList.contains("item-precio")) {
+            itemsFactura[index].precio = parseFloat(e.target.value) || 0;
+        } else if (e.target.classList.contains("item-cantidad")) {
+            itemsFactura[index].cantidad = parseInt(e.target.value) || 1;
+        } else if (e.target.classList.contains("item-ajuste")) {
+            itemsFactura[index].ajuste = parseFloat(e.target.value) || 0;
+        }
+
+        recalcularTotales();
+    });
+
+    cuerpoTabla.addEventListener("click", (e) => {
+        const btn = e.target.closest(".btn-eliminar-item");
+        if (btn) {
+            const index = btn.getAttribute("data-index");
+            itemsFactura.splice(index, 1);
+            renderizarTabla();
+        }
+    });
+
+    inputAnticipo.addEventListener("input", recalcularTotales);
+    chkIva.addEventListener("change", recalcularTotales);
+
+    // Auto-agregar servicio si viene por URL query
+    {% if servicio_seleccionado_id is defined and servicio_seleccionado_id is not none %}
+        if (itemsFactura.length === 0 && selectorCatalogo.selectedIndex > 0) {
+            btnAgregar.click();
+        }
+    {% endif %}
+
+    renderizarTabla();
+});
+</script>
+{% endblock %}

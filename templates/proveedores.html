@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block titulo %}Proveedores - Nexo Digital{% endblock %}
+
+{% block content %}
+<section class="page-header py-5 text-white">
+    <div class="container text-center">
+        <span class="badge bg-emerald mb-2 px-3 py-2 text-uppercase fw-semibold tracking-wider">Infraestructura</span>
+        <h1 class="display-5 fw-bold mb-3">Nuestros Proveedores</h1>
+        <p class="lead text-light-emerald mx-auto mb-4" style="max-width: 650px;">
+            Servicios, herramientas y plataformas tecnológicas que utilizamos para garantizar un servicio de excelencia.
+        </p>
+        <div>
+            <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-verde btn-lg shadow-sm">
+                <i class="bi bi-truck me-2"></i>Registrar nuevo proveedor
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="h4 fw-bold text-navy mb-1">Directorio de Proveedores</h2>
+                    <p class="text-muted small mb-0">Control de plataformas y servicios de terceros</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-navy text-white px-3 py-2 rounded-pill">
+                        <i class="bi bi-box-seam me-1"></i>{{ proveedores|length }} Proveedores
+                    </span>
+                    <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-outline-brand btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i>Nuevo
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                {% if proveedores %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 custom-table">
+                        <thead class="table-navy text-white">
+                            <tr>
+                                <th class="ps-4 py-3">Proveedor</th>
+                                <th class="py-3">Servicio Suministrado</th>
+                                <th class="py-3">Sitio Web Oficial</th>
+                                <th class="py-3 text-center">Estado Operativo</th>
+                                <th class="py-3 text-center pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proveedor in proveedores %}
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle">
+                                            <i class="bi bi-hdd-network"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-navy d-block">{{ proveedor.nombre }}</span>
+                                            <small class="text-muted">Proveedor de software/infra</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <span class="fw-semibold text-dark">
+                                        <i class="bi bi-check2-circle text-emerald me-1"></i>{{ proveedor.servicio }}
+                                    </span>
+                                </td>
+                                <td class="py-3">
+                                    <a href="https://{{ proveedor.sitio.replace('https://', '').replace('http://', '') }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-emerald fw-semibold">
+                                        <i class="bi bi-link-45deg me-1"></i>{{ proveedor.sitio }}
+                                    </a>
+                                </td>
+                                <td class="py-3 text-center">
+                                    {% if proveedor.estado == "Activo" %}
+                                        <span class="badge badge-disponible px-3 py-2">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Activo
+                                        </span>
+                                    {% elif proveedor.estado == "Pendiente" %}
+                                        <span class="badge badge-proximamente px-3 py-2">
+                                            <i class="bi bi-hourglass-split me-1"></i>Pendiente
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary px-3 py-2">
+                                            <i class="bi bi-dash-circle me-1"></i>{{ proveedor.estado }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-center pe-4">
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="{{ url_for('editar_proveedor', id=loop.index0) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar proveedor">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('eliminar_proveedor', id=loop.index0) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ proveedor.nombre }}»?');" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill" title="Eliminar proveedor">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-truck text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4 class="text-navy fw-bold">No existen proveedores registrados</h4>
+                    <p class="text-muted">Registra los servicios de infraestructura para comenzar.</p>
+                    <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-verde mt-2">
+                        <i class="bi bi-plus-lg me-1"></i>Registrar Primer Proveedor
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
