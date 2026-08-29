@@ -1,4 +1,4 @@
-import json
+import json, os
 from datetime import date
 from flask import Flask, render_template, redirect, url_for, flash, request
 
@@ -8,8 +8,7 @@ from forms.proveedor_form import ProveedorForm
 from forms.facturacion_form import FacturacionForm
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'nexodigital_clave_secreta_2026'
-
+app.config['SECRET_KEY'] = os.environ["secret_key"] 
 
 # ---------- DATOS DE EJEMPLO REALISTAS (Memoria de Aplicación) ----------
 
