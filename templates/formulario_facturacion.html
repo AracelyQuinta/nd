@@ -121,11 +121,10 @@
                                         <select id="selectorCatalogo" class="form-select">
                                             <option value="">-- Selecciona un servicio del catálogo --</option>
                                             {% for s in servicios_catalogo %}
-                                                <option value="{{ loop.index0 }}"
+                                                <option value="{{ s.id }}"
                                                         data-nombre="{{ s.nombre }}"
-                                                        data-precio="{{ s.precio or 0.0 }}"
-                                                        data-tiempo="{{ s.tiempo_estimado or '' }}"
-                                                        {% if servicio_seleccionado_id is defined and servicio_seleccionado_id == loop.index0 %}selected{% endif %}>
+                                                    data-precio="{{ s.precio or 0.0 }}"
+                                                        {% if servicio_seleccionado_id is defined and servicio_seleccionado_id == s.id %}selected{% endif %}>
                                                     {{ s.nombre }} — ${{ "%.2f"|format(s.precio or 0.0) }} ({{ s.tiempo_estimado or '2 a 5 días' }})
                                                 </option>
                                             {% endfor %}

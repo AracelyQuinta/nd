@@ -143,16 +143,13 @@
 
                     <div class="card-body p-4 d-flex flex-column flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="time-badge">
-                                <i class="bi bi-clock-history text-emerald me-1"></i>{{ s.tiempo_estimado or '2 a 5 días' }}
-                            </span>
-                            {% if s.disponible %}
+                            {% if s.estado == 'Activo' %}
                                 <span class="badge badge-disponible">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Disponible
+                                    <i class="bi bi-check-circle-fill me-1"></i>{{ s.estado }}
                                 </span>
                             {% else %}
                                 <span class="badge badge-proximamente">
-                                    <i class="bi bi-clock-fill me-1"></i>Próximamente
+                                    <i class="bi bi-dash-circle-fill me-1"></i>{{ s.estado }}
                                 </span>
                             {% endif %}
                         </div>
@@ -161,7 +158,7 @@
                         <p class="text-body small flex-grow-1 mb-3">{{ s.descripcion }}</p>
 
                         <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
-                            <a href="{{ url_for('nueva_factura', servicio_id=loop.index0) }}" class="btn btn-verde btn-sm rounded-pill w-100">
+                            <a href="{{ url_for('nueva_factura', servicio_id=s.id) }}" class="btn btn-verde btn-sm rounded-pill w-100">
                                 <i class="bi bi-receipt me-1"></i>Cotizar / Facturar este servicio
                             </a>
                         </div>

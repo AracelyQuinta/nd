@@ -45,7 +45,8 @@
                                 <th class="ps-4 py-3">Cliente / Empresa</th>
                                 <th class="py-3">Tipo de Negocio</th>
                                 <th class="py-3">Servicio Contratado</th>
-                                <th class="py-3">Ciudad</th>
+                                <th class="py-3">Ubicación</th>
+                                <th class="py-3">Celular</th>
                                 <th class="py-3 text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
@@ -75,15 +76,16 @@
                                 </td>
                                 <td class="py-3">
                                     <span class="text-muted">
-                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ cliente.ciudad }}
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ cliente.provincia }}, {{ cliente.canton }}, {{ cliente.barrio }}
                                     </span>
                                 </td>
+                                <td class="py-3">{{ cliente.celular }}</td>
                                 <td class="py-3 text-center pe-4">
                                     <div class="d-inline-flex gap-1">
-                                        <a href="{{ url_for('editar_cliente', id=loop.index0) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar cliente">
+                                        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar cliente">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form method="POST" action="{{ url_for('eliminar_cliente', id=loop.index0) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ cliente.nombre }}»?');" class="d-inline">
+                                        <form method="POST" action="{{ url_for('eliminar_cliente', id=cliente.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ cliente.nombre }}»?');" class="d-inline">
                                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill" title="Eliminar cliente">
                                                 <i class="bi bi-trash-fill"></i>
                                             </button>

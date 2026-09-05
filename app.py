@@ -6,9 +6,22 @@ from forms.cliente_form import ClienteForm
 from forms.servicio_form import ServicioForm
 from forms.proveedor_form import ProveedorForm
 from forms.facturacion_form import FacturacionForm
+from database import (
+    create_service,
+    delete_service,
+    get_service,
+    initialize_database,
+    list_services,
+    update_service,
+    create_client,
+    delete_client,
+    get_client,
+    list_clients,
+    update_client,
+)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ["secret_key"] 
+app.config['SECRET_KEY'] = os.environ.get("secret_key", "dev-secret-key-change-me")
 
 # ---------- DATOS DE EJEMPLO REALISTAS (Memoria de Aplicación) ----------
 
@@ -151,6 +164,8 @@ lista_facturas = [
     }
 ]
 
+initialize_database(lista_servicios)
+
 
 # ---------- RUTAS PRINCIPALES DE VISUALIZACIÓN ----------
 
@@ -162,13 +177,13 @@ def inicio():
         "ubicacion": "Quito / Puyo - Ecuador",
         "modalidad": "Atención 100% en línea"
     }
-    return render_template('index.html', mensaje=mensaje, empresa=empresa, servicios=lista_servicios)
+    return render_template('index.html', mensaje=mensaje, empresa=empresa, servicios=list_services())
 
 
 @app.route('/servicios')
 @app.route('/servicio')
 def servicios():
-    return render_template('servicios.html', servicios=lista_servicios)
+    return render_template('servicios.html', servicios=list_services())
 
 
 @app.route('/proveedores')
@@ -178,7 +193,7 @@ def proveedores():
 
 @app.route('/clientes')
 def clientes():
-    return render_template('clientes.html', clientes=lista_clientes)
+    return render_template('clientes.html', clientes=list_clients())
 
 
 @app.route('/facturacion')
@@ -192,11 +207,14 @@ def facturacion():
 def nuevo_cliente():
     form = ClienteForm()
     if form.validate_on_submit():
-        lista_clientes.append({
+        create_client({
             "nombre": form.nombre.data,
             "negocio": form.negocio.data,
             "servicio": form.servicio.data,
-            "ciudad": form.ciudad.data
+            "celular": form.celular.data,
+            "provincia": form.provincia.data,
+            "canton": form.canton.data,
+            "barrio": form.barrio.data,
         })
         flash('Cliente registrado correctamente.', 'success')
         return redirect(url_for('clientes'))
@@ -205,20 +223,23 @@ def nuevo_cliente():
 
 @app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
 def editar_cliente(id):
-    if id < 0 or id >= len(lista_clientes):
+    cliente = get_client(id)
+    if cliente is None:
         flash('El cliente solicitado no existe.', 'danger')
         return redirect(url_for('clientes'))
     
-    cliente = lista_clientes[id]
     form = ClienteForm(data=cliente) if request.method == 'GET' else ClienteForm()
     
     if form.validate_on_submit():
-        lista_clientes[id] = {
+        update_client(id, {
             "nombre": form.nombre.data,
             "negocio": form.negocio.data,
             "servicio": form.servicio.data,
-            "ciudad": form.ciudad.data
-        }
+            "celular": form.celular.data,
+            "provincia": form.provincia.data,
+            "canton": form.canton.data,
+            "barrio": form.barrio.data,
+        })
         flash(f'Cliente "{form.nombre.data}" actualizado correctamente.', 'success')
         return redirect(url_for('clientes'))
     
@@ -227,9 +248,10 @@ def editar_cliente(id):
 
 @app.route('/clientes/eliminar/<int:id>', methods=['POST', 'GET'])
 def eliminar_cliente(id):
-    if 0 <= id < len(lista_clientes):
-        nombre = lista_clientes[id]['nombre']
-        lista_clientes.pop(id)
+    cliente = get_client(id)
+    if cliente is not None:
+        nombre = cliente['nombre']
+        delete_client(id)
         flash(f'Cliente "{nombre}" eliminado correctamente.', 'success')
     else:
         flash('El cliente solicitado no existe.', 'danger')
@@ -244,15 +266,13 @@ def nuevo_servicio():
     form = ServicioForm()
     if form.validate_on_submit():
         imagen_url = form.imagen.data.strip() if form.imagen.data and form.imagen.data.strip() else "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80"
-        tiempo = form.tiempo_estimado.data.strip() if form.tiempo_estimado.data and form.tiempo_estimado.data.strip() else "2 a 5 días"
 
-        lista_servicios.append({
+        create_service({
             "nombre": form.nombre.data,
             "descripcion": form.descripcion.data,
             "precio": float(form.precio.data),
-            "tiempo_estimado": tiempo,
             "imagen": imagen_url,
-            "disponible": form.disponible.data
+            "estado": form.estado.data
         })
         flash('Servicio registrado correctamente.', 'success')
         return redirect(url_for('servicios'))
@@ -262,25 +282,23 @@ def nuevo_servicio():
 @app.route('/servicios/editar/<int:id>', methods=['GET', 'POST'])
 @app.route('/servicio/editar/<int:id>', methods=['GET', 'POST'])
 def editar_servicio(id):
-    if id < 0 or id >= len(lista_servicios):
+    servicio = get_service(id)
+    if servicio is None:
         flash('El servicio solicitado no existe.', 'danger')
         return redirect(url_for('servicios'))
-    
-    servicio = lista_servicios[id]
+
     form = ServicioForm(data=servicio) if request.method == 'GET' else ServicioForm()
     
     if form.validate_on_submit():
         imagen_url = form.imagen.data.strip() if form.imagen.data and form.imagen.data.strip() else servicio.get("imagen", "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80")
-        tiempo = form.tiempo_estimado.data.strip() if form.tiempo_estimado.data and form.tiempo_estimado.data.strip() else "2 a 5 días"
 
-        lista_servicios[id] = {
+        update_service(id, {
             "nombre": form.nombre.data,
             "descripcion": form.descripcion.data,
             "precio": float(form.precio.data),
-            "tiempo_estimado": tiempo,
             "imagen": imagen_url,
-            "disponible": form.disponible.data
-        }
+            "estado": form.estado.data
+        })
         flash(f'Servicio "{form.nombre.data}" actualizado correctamente.', 'success')
         return redirect(url_for('servicios'))
     
@@ -290,9 +308,10 @@ def editar_servicio(id):
 @app.route('/servicios/eliminar/<int:id>', methods=['POST', 'GET'])
 @app.route('/servicio/eliminar/<int:id>', methods=['POST', 'GET'])
 def eliminar_servicio(id):
-    if 0 <= id < len(lista_servicios):
-        nombre = lista_servicios[id]['nombre']
-        lista_servicios.pop(id)
+    servicio = get_service(id)
+    if servicio is not None:
+        nombre = servicio['nombre']
+        delete_service(id)
         flash(f'Servicio "{nombre}" eliminado correctamente.', 'success')
     else:
         flash('El servicio solicitado no existe.', 'danger')
@@ -416,8 +435,8 @@ def nueva_factura():
         'formulario_facturacion.html',
         form=form,
         editando=False,
-        servicios_catalogo=lista_servicios,
-        clientes_registrados=lista_clientes,
+        servicios_catalogo=list_services(),
+        clientes_registrados=list_clients(),
         servicio_seleccionado_id=request.args.get('servicio_id', type=int)
     )
 
@@ -473,8 +492,8 @@ def editar_factura(id):
         form=form,
         editando=True,
         id=id,
-        servicios_catalogo=lista_servicios,
-        clientes_registrados=lista_clientes,
+        servicios_catalogo=list_services(),
+        clientes_registrados=list_clients(),
         detalle_existente=factura.get('servicios_detalle', [])
     )
 

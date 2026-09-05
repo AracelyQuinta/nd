@@ -24,8 +24,9 @@ Plataforma web institucional y panel de gestión para el emprendimiento tecnoló
    - Módulo dinámico de **Registro de Solicitudes** con manipulación del DOM y persistencia en `localStorage`.
 
 2. **Catálogo de Servicios (`/servicios` o `/servicio`)**:
-   - Listado modular de servicios con badges semánticos de disponibilidad (`Disponible` / `Próximamente`).
+   - Listado modular de servicios con estados normalizados (`Activo` / `Inactivo`).
    - Formulario para registrar nuevos servicios (`/servicios/nuevo`).
+   - Persistencia local en SQLite mediante la tabla `servicios`.
 
 3. **Directorio de Clientes (`/clientes`)**:
    - Tabla interactiva con información de clientes, tipo de negocio y servicio contratado.
@@ -68,6 +69,92 @@ python app.py
 
 Abre tu navegador web e ingresa a: **`http://127.0.0.1:5000/`**
 
+### 5. Persistencia local
+
+La aplicación crea automáticamente `data/nexodigital.db` al iniciar. La capa de acceso está separada en `database.py` y se encarga de:
+
+- Crear un modelo entidad-relación con las tablas `clientes`, `proveedores`, `servicios`, `estados`, `facturas`, `factura_detalle` y `pagos`.
+- Relacionar cada factura con un cliente mediante `facturas.cliente_id`.
+- Relacionar cada línea de factura con una factura y un servicio mediante claves foráneas.
+- Centralizar los estados de servicios, proveedores, facturas y pagos en la tabla `estados`.
+- Registrar anticipos y abonos en `pagos`, relacionados con la factura correspondiente.
+- Proteger las relaciones con `PRAGMA foreign_keys = ON` y eliminar los detalles cuando se elimina su factura.
+- Insertar únicamente los datos que superaron `form.validate_on_submit()`.
+- Recuperar el catálogo mediante `SELECT` y `fetchall()` para renderizarlo con Jinja2.
+- Confirmar cambios con `commit()` y cerrar cada conexión con `close()`.
+
+### MVC y tercera forma normal
+
+- **Modelo:** `database.py` contiene la conexión, el esquema, las relaciones y el repositorio de servicios.
+- **Controlador:** `app.py` recibe las peticiones, valida formularios y coordina el modelo con las vistas.
+- **Vista:** las plantillas Jinja2 muestran los datos y heredan de `base.html`.
+- Las tablas almacenan atributos que dependen de su clave primaria y usan claves foráneas para las relaciones.
+- Los importes de facturación se calculan en `resumen_facturas` a partir de `factura_detalle` y `pagos`, evitando duplicar datos derivados.
+
+### Modelo entidad-relación
+
+```mermaid
+erDiagram
+   CLIENTES ||--o{ FACTURAS : "recibe"
+   FACTURAS ||--|{ FACTURA_DETALLE : "contiene"
+   SERVICIOS ||--o{ FACTURA_DETALLE : "aparece en"
+   ESTADOS ||--o{ SERVICIOS : "clasifica"
+   ESTADOS ||--o{ PROVEEDORES : "clasifica"
+   ESTADOS ||--o{ FACTURAS : "clasifica"
+   ESTADOS ||--o{ PAGOS : "clasifica"
+   FACTURAS ||--o{ PAGOS : "recibe"
+   PROVEEDORES {
+      INTEGER id PK
+      TEXT nombre
+      TEXT servicio
+      TEXT sitio
+      INTEGER estado_id FK
+   }
+   CLIENTES {
+      INTEGER id PK
+      TEXT nombre
+      TEXT negocio
+      TEXT ciudad
+   }
+   SERVICIOS {
+      INTEGER id PK
+      TEXT nombre
+      TEXT descripcion
+      REAL precio
+      INTEGER estado_id FK
+   }
+   FACTURAS {
+      INTEGER id PK
+      INTEGER cliente_id FK
+      INTEGER estado_id FK
+      TEXT numero UK
+      TEXT tipo
+      REAL monto
+      TEXT estado
+   }
+   FACTURA_DETALLE {
+      INTEGER id PK
+      INTEGER factura_id FK
+      INTEGER servicio_id FK
+      INTEGER cantidad
+      REAL total
+   }
+   ESTADOS {
+      INTEGER id PK
+      TEXT entidad
+      TEXT nombre
+   }
+   PAGOS {
+      INTEGER id PK
+      INTEGER factura_id FK
+      INTEGER estado_id FK
+      REAL monto
+      TEXT metodo_pago
+   }
+```
+
+Para comprobar la persistencia, registra un servicio en `/servicios/nuevo`, detén `python app.py`, ejecútalo nuevamente y vuelve a visitar `/servicios`.
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -75,7 +162,10 @@ Abre tu navegador web e ingresa a: **`http://127.0.0.1:5000/`**
 ```text
 NEXODIGITAL/
 ├── app.py                      # Controlador principal y rutas de la aplicación Flask
+├── database.py                 # Conexiones, inicialización y consultas SQLite
 ├── requirements.txt            # Dependencias del proyecto
+├── data/
+│   └── nexodigital.db           # Base de datos local persistente
 ├── forms/                      # Formularios construidos con Flask-WTF
 │   ├── cliente_form.py
 │   ├── facturacion_form.py

@@ -66,15 +66,39 @@
                                 {% endfor %}
                             </div>
 
-                            <div class="mb-4">
-                                {{ form.ciudad.label(class="form-label fw-semibold text-navy") }}
+                            <div class="mb-3">
+                                {{ form.celular.label(class="form-label fw-semibold text-navy") }}
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
-                                    {{ form.ciudad(class="form-control" + (" is-invalid" if form.ciudad.errors else ""), placeholder="Ej: Santo Domingo, Quito, etc.") }}
+                                    <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
+                                    {{ form.celular(class="form-control" + (" is-invalid" if form.celular.errors else ""), placeholder="Ej: 0991234567", maxlength="10", inputmode="numeric") }}
                                 </div>
-                                {% for error in form.ciudad.errors %}
+                                {% for error in form.celular.errors %}
                                     <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
                                 {% endfor %}
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    {{ form.provincia.label(class="form-label fw-semibold text-navy") }}
+                                    {{ form.provincia(class="form-control" + (" is-invalid" if form.provincia.errors else ""), placeholder="Ej: Pastaza") }}
+                                    {% for error in form.provincia.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.canton.label(class="form-label fw-semibold text-navy") }}
+                                    {{ form.canton(class="form-control" + (" is-invalid" if form.canton.errors else ""), placeholder="Ej: Puyo") }}
+                                    {% for error in form.canton.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.barrio.label(class="form-label fw-semibold text-navy") }}
+                                    {{ form.barrio(class="form-control" + (" is-invalid" if form.barrio.errors else ""), placeholder="Ej: El Dorado") }}
+                                    {% for error in form.barrio.errors %}
+                                        <div class="text-danger small mt-1">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
 
                             <div class="d-flex gap-2 pt-2">
