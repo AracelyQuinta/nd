@@ -280,19 +280,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const boxDiferencia = document.getElementById("boxDiferencia");
     const lblTextoSaldo = document.getElementById("lblTextoSaldo");
     const inputJson = document.getElementById("servicios_json");
+    const estadosDisponibles = Array.from(selectEstadoDoc.options).map((option) => ({
+        value: option.value,
+        label: option.textContent
+    }));
 
     function actualizarEstados() {
         const estadosPermitidos = selectTipoDoc.value === "Cotizacion"
             ? ["Aprobada", "En revision"]
             : ["Pagada", "Pendiente", "Vencida"];
+        const estadoActual = estadosPermitidos.includes(selectEstadoDoc.value)
+            ? selectEstadoDoc.value
+            : estadosPermitidos[0];
 
-        Array.from(selectEstadoDoc.options).forEach((option) => {
-            option.hidden = !estadosPermitidos.includes(option.value);
-        });
-
-        if (!estadosPermitidos.includes(selectEstadoDoc.value)) {
-            selectEstadoDoc.value = estadosPermitidos[0];
-        }
+        selectEstadoDoc.replaceChildren(
+            ...estadosDisponibles
+                .filter((option) => estadosPermitidos.includes(option.value))
+                .map((option) => new Option(option.label, option.value))
+        );
+        selectEstadoDoc.value = estadoActual;
     }
 
     // Renderizar filas de la tabla con campos espaciosos

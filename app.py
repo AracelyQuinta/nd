@@ -40,8 +40,10 @@ ESTADOS_COTIZACION = [
 ]
 
 
-def configurar_estados_documento(form, tipo):
-    form.estado.choices = ESTADOS_COTIZACION if tipo == 'Cotizacion' else ESTADOS_FACTURA
+def configurar_estados_documento(form, tipo, todos=False):
+    form.estado.choices = ESTADOS_FACTURA + ESTADOS_COTIZACION if todos else (
+        ESTADOS_COTIZACION if tipo == 'Cotizacion' else ESTADOS_FACTURA
+    )
 
 
 # ---------- RUTAS PRINCIPALES DE VISUALIZACIÓN ----------
@@ -130,7 +132,7 @@ def nueva_factura():
         'tipo', 'Cotizacion' if request.args.get('servicio_id') is not None else 'Factura'
     )
     form = FacturacionForm()
-    configurar_estados_documento(form, tipo_solicitado)
+    configurar_estados_documento(form, tipo_solicitado, todos=request.method == 'GET')
     
     # Sugerir valores por defecto si es GET
     if request.method == 'GET':
@@ -211,7 +213,8 @@ def editar_factura(id):
     
     factura = documentos[id]
     form = FacturacionForm(data=factura) if request.method == 'GET' else FacturacionForm()
-    configurar_estados_documento(form, request.form.get('tipo', factura.get('tipo', 'Factura')))
+    tipo_formulario = request.form.get('tipo', factura.get('tipo', 'Factura'))
+    configurar_estados_documento(form, tipo_formulario, todos=request.method == 'GET')
 
     if request.method == 'GET' and 'servicios_detalle' in factura:
         form.servicios_json.data = json.dumps(factura['servicios_detalle'])
