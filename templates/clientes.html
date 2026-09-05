@@ -11,7 +11,7 @@
             Negocios, comercios locales y emprendedores que confían en nuestras soluciones digitales.
         </p>
         <div>
-            <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-verde btn-lg shadow-sm">
+            <a href="{{ url_for('clientes.nuevo') }}" class="btn btn-verde btn-lg shadow-sm">
                 <i class="bi bi-person-plus me-2"></i>Registrar nuevo cliente
             </a>
         </div>
@@ -30,7 +30,7 @@
                     <span class="badge bg-navy text-white px-3 py-2 rounded-pill">
                         <i class="bi bi-people me-1"></i>{{ clientes|length }} Registrados
                     </span>
-                    <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-outline-brand btn-sm">
+                    <a href="{{ url_for('clientes.nuevo') }}" class="btn btn-outline-brand btn-sm">
                         <i class="bi bi-plus-lg me-1"></i>Nuevo
                     </a>
                 </div>
@@ -44,8 +44,7 @@
                             <tr>
                                 <th class="ps-4 py-3">Cliente / Empresa</th>
                                 <th class="py-3">Tipo de Negocio</th>
-                                <th class="py-3">Servicio Contratado</th>
-                                <th class="py-3">Ubicación</th>
+                                <th class="py-3">Provincia / Cantón</th>
                                 <th class="py-3">Celular</th>
                                 <th class="py-3 text-center pe-4">Acciones</th>
                             </tr>
@@ -70,22 +69,17 @@
                                     </span>
                                 </td>
                                 <td class="py-3">
-                                    <span class="fw-semibold text-emerald">
-                                        {{ cliente.servicio }}
-                                    </span>
-                                </td>
-                                <td class="py-3">
                                     <span class="text-muted">
-                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ cliente.provincia }}, {{ cliente.canton }}, {{ cliente.barrio }}
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ cliente.provincia }}, {{ cliente.canton }}
                                     </span>
                                 </td>
                                 <td class="py-3">{{ cliente.celular }}</td>
                                 <td class="py-3 text-center pe-4">
                                     <div class="d-inline-flex gap-1">
-                                        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar cliente">
+                                        <a href="{{ url_for('clientes.editar', cliente_id=cliente.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar cliente">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form method="POST" action="{{ url_for('eliminar_cliente', id=cliente.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ cliente.nombre }}»?');" class="d-inline">
+                                        <form method="POST" action="{{ url_for('clientes.eliminar', cliente_id=cliente.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ cliente.nombre }}»?');" class="d-inline">
                                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill" title="Eliminar cliente">
                                                 <i class="bi bi-trash-fill"></i>
                                             </button>
@@ -104,7 +98,7 @@
                     </div>
                     <h4 class="text-navy fw-bold">No existen clientes registrados</h4>
                     <p class="text-muted">Registra los primeros negocios asociados para comenzar.</p>
-                    <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-verde mt-2">
+                    <a href="{{ url_for('clientes.nuevo') }}" class="btn btn-verde mt-2">
                         <i class="bi bi-person-plus me-1"></i>Registrar Primer Cliente
                     </a>
                 </div>

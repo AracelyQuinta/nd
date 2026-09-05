@@ -90,10 +90,10 @@
                                 </td>
                                 <td class="py-3 text-center pe-4">
                                     <div class="d-inline-flex gap-1">
-                                        <a href="{{ url_for('editar_proveedor', id=loop.index0) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar proveedor">
+                                        <a href="{{ url_for('editar_proveedor', id=proveedor.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar proveedor">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form method="POST" action="{{ url_for('eliminar_proveedor', id=loop.index0) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ proveedor.nombre }}»?');" class="d-inline">
+                                        <form method="POST" action="{{ url_for('eliminar_proveedor', id=proveedor.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a «{{ proveedor.nombre }}»?');" class="d-inline">
                                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill" title="Eliminar proveedor">
                                                 <i class="bi bi-trash-fill"></i>
                                             </button>

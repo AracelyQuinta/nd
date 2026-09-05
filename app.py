@@ -2,169 +2,46 @@ import json, os
 from datetime import date
 from flask import Flask, render_template, redirect, url_for, flash, request
 
-from forms.cliente_form import ClienteForm
-from forms.servicio_form import ServicioForm
 from forms.proveedor_form import ProveedorForm
 from forms.facturacion_form import FacturacionForm
 from database import (
-    create_service,
-    delete_service,
-    get_service,
     initialize_database,
     list_services,
-    update_service,
-    create_client,
-    delete_client,
-    get_client,
     list_clients,
-    update_client,
+    create_invoice,
+    delete_invoice,
+    list_invoices,
+    update_invoice,
+    create_provider,
+    delete_provider,
+    get_provider,
+    list_providers,
+    update_provider,
 )
+from controllers.clientes import clientes_bp
+from controllers.servicios import servicios_bp
+from data.seed_data import COTIZACIONES_INICIALES, FACTURAS_INICIALES, PROVEEDORES_INICIALES, SERVICIOS_INICIALES
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("secret_key", "dev-secret-key-change-me")
+app.register_blueprint(servicios_bp)
+app.register_blueprint(clientes_bp)
 
-# ---------- DATOS DE EJEMPLO REALISTAS (Memoria de Aplicación) ----------
+initialize_database(SERVICIOS_INICIALES, FACTURAS_INICIALES, PROVEEDORES_INICIALES)
 
-lista_servicios = [
-    {
-        "nombre": "Diseño y Desarrollo Web Profesional",
-        "descripcion": "Sitios web modernos, adaptables a móviles, ultra rápidos y con optimización SEO para posicionamiento en Google.",
-        "precio": 250.00,
-        "tiempo_estimado": "5 a 7 días laborables",
-        "imagen": "https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=800&q=80",
-        "disponible": True
-    },
-    {
-        "nombre": "Catálogos Digitales Interactivos",
-        "descripcion": "Diseño de catálogos visuales con galerías de productos, filtros por categoría y botón de pedido directo por WhatsApp.",
-        "precio": 120.00,
-        "tiempo_estimado": "3 a 4 días laborables",
-        "imagen": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80",
-        "disponible": True
-    },
-    {
-        "nombre": "Menús Digitales QR para Restaurantes",
-        "descripcion": "Menú interactivo accesible por código QR para mesas, con fotos de platos, precios y actualización en tiempo real.",
-        "precio": 65.00,
-        "tiempo_estimado": "24 a 48 horas",
-        "imagen": "https://images.unsplash.com/photo-1595079672139-5470887216e9?auto=format&fit=crop&w=800&q=80",
-        "disponible": True
-    },
-    {
-        "nombre": "Formularios Dinámicos y Cotizadores",
-        "descripcion": "Formularios avanzados para captura de clientes potenciales, reservas, cotizaciones y pedidos con validaciones en vivo.",
-        "precio": 85.00,
-        "tiempo_estimado": "2 a 3 días laborables",
-        "imagen": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
-        "disponible": True
-    },
-    {
-        "nombre": "Integración con WhatsApp & Redes",
-        "descripcion": "Configuración de canales de atención directa por WhatsApp Business, botones flotantes y enlaces a TikTok, Instagram y Facebook.",
-        "precio": 45.00,
-        "tiempo_estimado": "24 horas",
-        "imagen": "https://images.unsplash.com/photo-1611746872915-64382b5c76da?auto=format&fit=crop&w=800&q=80",
-        "disponible": True
-    },
-    {
-        "nombre": "Accesibilidad y Optimización Web",
-        "descripcion": "Auditoría técnica y adaptación de sitios web existentes bajo estándares WCAG y buenas prácticas de velocidad.",
-        "precio": 110.00,
-        "tiempo_estimado": "3 a 5 días laborables",
-        "imagen": "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80",
-        "disponible": False
-    }
+ESTADOS_FACTURA = [
+    ('Pagada', 'Pagada (Totalmente Cancelada)'),
+    ('Pendiente', 'Pendiente (Con Saldo por Cobrar)'),
+    ('Vencida', 'Vencida / Expirada'),
+]
+ESTADOS_COTIZACION = [
+    ('Aprobada', 'Aprobada por el Cliente (Cotización)'),
+    ('En revision', 'En Revisión / Enviada (Cotización)'),
 ]
 
-lista_proveedores = [
-    {"nombre": "Hostinger", "servicio": "Hosting Web y Servidores Cloud", "sitio": "hostinger.com", "estado": "Activo"},
-    {"nombre": "GoDaddy", "servicio": "Registro de Dominios Internacionales", "sitio": "godaddy.com", "estado": "Activo"},
-    {"nombre": "Figma", "servicio": "Software de Prototipado y Diseño UI/UX", "sitio": "figma.com", "estado": "Activo"},
-    {"nombre": "Cloudflare", "servicio": "Seguridad Web, SSL y CDN Global", "sitio": "cloudflare.com", "estado": "Pendiente"}
-]
 
-lista_clientes = [
-    {"nombre": "Panadería El Trigal", "negocio": "Panadería y Pastelería", "servicio": "Diseño Web + Menú QR", "ciudad": "Santo Domingo"},
-    {"nombre": "Boutique Bella", "negocio": "Tienda de Ropa y Modas", "servicio": "Catálogo Digital", "ciudad": "Quito"},
-    {"nombre": "Taller Mecánico RPM", "negocio": "Servicios Automotrices", "servicio": "Formulario de Citas", "ciudad": "Santo Domingo"},
-    {"nombre": "Café Aroma Amazónico", "negocio": "Cafetería y Restaurante", "servicio": "Menú QR + WhatsApp", "ciudad": "Puyo"}
-]
-
-lista_facturas = [
-    {
-        "tipo": "Factura",
-        "numero": "001-001-0001",
-        "cliente": "Panadería El Trigal",
-        "fecha": "2026-01-15",
-        "validez": "30 días",
-        "servicios_detalle": [
-            {"servicio": "Diseño y Desarrollo Web Profesional", "precio": 250.00, "cantidad": 1, "ajuste": 0.00, "total": 250.00},
-            {"servicio": "Menús Digitales QR para Restaurantes", "precio": 65.00, "cantidad": 1, "ajuste": 0.00, "total": 65.00}
-        ],
-        "subtotal": 315.00,
-        "iva": 47.25,
-        "monto": 362.25,
-        "anticipo": 362.25,
-        "saldo_pendiente": 0.00,
-        "estado": "Pagada",
-        "notas": "Factura liquidada al 100%. Proyecto entregado con dominio y hosting activo."
-    },
-    {
-        "tipo": "Cotizacion",
-        "numero": "COT-2026-0042",
-        "cliente": "Boutique Bella",
-        "fecha": "2026-02-18",
-        "validez": "15 días calendario",
-        "servicios_detalle": [
-            {"servicio": "Catálogos Digitales Interactivos", "precio": 120.00, "cantidad": 1, "ajuste": 0.00, "total": 120.00},
-            {"servicio": "Integración con WhatsApp & Redes", "precio": 45.00, "cantidad": 1, "ajuste": 0.00, "total": 45.00}
-        ],
-        "subtotal": 165.00,
-        "iva": 24.75,
-        "monto": 189.75,
-        "anticipo": 100.00,
-        "saldo_pendiente": 89.75,
-        "estado": "Aprobada",
-        "notas": "Cotización aprobada. Anticipo de $100 recibido. Saldo restante de $89.75 a cancelar contra entrega del catálogo."
-    },
-    {
-        "tipo": "Cotizacion",
-        "numero": "COT-2026-0043",
-        "cliente": "Taller Mecánico RPM",
-        "fecha": "2026-02-20",
-        "validez": "15 días calendario",
-        "servicios_detalle": [
-            {"servicio": "Formularios Dinámicos y Cotizadores", "precio": 85.00, "cantidad": 1, "ajuste": 15.00, "total": 100.00}
-        ],
-        "subtotal": 100.00,
-        "iva": 15.00,
-        "monto": 115.00,
-        "anticipo": 0.00,
-        "saldo_pendiente": 115.00,
-        "estado": "En revision",
-        "notas": "Propuesta en revisión por gerencia. Ajuste de $15 por personalización de búsqueda por número de placa."
-    },
-    {
-        "tipo": "Factura",
-        "numero": "001-001-0002",
-        "cliente": "Café Aroma Amazónico",
-        "fecha": "2026-03-10",
-        "validez": "15 días",
-        "servicios_detalle": [
-            {"servicio": "Menús Digitales QR para Restaurantes", "precio": 65.00, "cantidad": 2, "ajuste": 0.00, "total": 130.00},
-            {"servicio": "Integración con WhatsApp & Redes", "precio": 45.00, "cantidad": 1, "ajuste": 0.00, "total": 45.00}
-        ],
-        "subtotal": 175.00,
-        "iva": 26.25,
-        "monto": 201.25,
-        "anticipo": 100.00,
-        "saldo_pendiente": 101.25,
-        "estado": "Pendiente",
-        "notas": "Factura emitida con anticipo de $100.00. Diferencia pendiente de $101.25 con plazo de 10 días."
-    }
-]
-
-initialize_database(lista_servicios)
+def configurar_estados_documento(form, tipo):
+    form.estado.choices = ESTADOS_COTIZACION if tipo == 'Cotizacion' else ESTADOS_FACTURA
 
 
 # ---------- RUTAS PRINCIPALES DE VISUALIZACIÓN ----------
@@ -180,142 +57,18 @@ def inicio():
     return render_template('index.html', mensaje=mensaje, empresa=empresa, servicios=list_services())
 
 
-@app.route('/servicios')
-@app.route('/servicio')
-def servicios():
-    return render_template('servicios.html', servicios=list_services())
-
-
 @app.route('/proveedores')
 def proveedores():
-    return render_template('proveedores.html', proveedores=lista_proveedores)
-
-
-@app.route('/clientes')
-def clientes():
-    return render_template('clientes.html', clientes=list_clients())
+    return render_template('proveedores.html', proveedores=list_providers())
 
 
 @app.route('/facturacion')
 def facturacion():
-    return render_template('facturacion.html', facturas=lista_facturas)
+    return render_template('facturacion.html', facturas=documentos_facturacion())
 
 
-# ---------- RUTAS CRUD: CLIENTES ----------
-
-@app.route('/clientes/nuevo', methods=['GET', 'POST'])
-def nuevo_cliente():
-    form = ClienteForm()
-    if form.validate_on_submit():
-        create_client({
-            "nombre": form.nombre.data,
-            "negocio": form.negocio.data,
-            "servicio": form.servicio.data,
-            "celular": form.celular.data,
-            "provincia": form.provincia.data,
-            "canton": form.canton.data,
-            "barrio": form.barrio.data,
-        })
-        flash('Cliente registrado correctamente.', 'success')
-        return redirect(url_for('clientes'))
-    return render_template('formulario_cliente.html', form=form, editando=False)
-
-
-@app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
-def editar_cliente(id):
-    cliente = get_client(id)
-    if cliente is None:
-        flash('El cliente solicitado no existe.', 'danger')
-        return redirect(url_for('clientes'))
-    
-    form = ClienteForm(data=cliente) if request.method == 'GET' else ClienteForm()
-    
-    if form.validate_on_submit():
-        update_client(id, {
-            "nombre": form.nombre.data,
-            "negocio": form.negocio.data,
-            "servicio": form.servicio.data,
-            "celular": form.celular.data,
-            "provincia": form.provincia.data,
-            "canton": form.canton.data,
-            "barrio": form.barrio.data,
-        })
-        flash(f'Cliente "{form.nombre.data}" actualizado correctamente.', 'success')
-        return redirect(url_for('clientes'))
-    
-    return render_template('formulario_cliente.html', form=form, editando=True, id=id)
-
-
-@app.route('/clientes/eliminar/<int:id>', methods=['POST', 'GET'])
-def eliminar_cliente(id):
-    cliente = get_client(id)
-    if cliente is not None:
-        nombre = cliente['nombre']
-        delete_client(id)
-        flash(f'Cliente "{nombre}" eliminado correctamente.', 'success')
-    else:
-        flash('El cliente solicitado no existe.', 'danger')
-    return redirect(url_for('clientes'))
-
-
-# ---------- RUTAS CRUD: SERVICIOS ----------
-
-@app.route('/servicios/nuevo', methods=['GET', 'POST'])
-@app.route('/servicio/nuevo', methods=['GET', 'POST'])
-def nuevo_servicio():
-    form = ServicioForm()
-    if form.validate_on_submit():
-        imagen_url = form.imagen.data.strip() if form.imagen.data and form.imagen.data.strip() else "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80"
-
-        create_service({
-            "nombre": form.nombre.data,
-            "descripcion": form.descripcion.data,
-            "precio": float(form.precio.data),
-            "imagen": imagen_url,
-            "estado": form.estado.data
-        })
-        flash('Servicio registrado correctamente.', 'success')
-        return redirect(url_for('servicios'))
-    return render_template('formulario_servicio.html', form=form, editando=False)
-
-
-@app.route('/servicios/editar/<int:id>', methods=['GET', 'POST'])
-@app.route('/servicio/editar/<int:id>', methods=['GET', 'POST'])
-def editar_servicio(id):
-    servicio = get_service(id)
-    if servicio is None:
-        flash('El servicio solicitado no existe.', 'danger')
-        return redirect(url_for('servicios'))
-
-    form = ServicioForm(data=servicio) if request.method == 'GET' else ServicioForm()
-    
-    if form.validate_on_submit():
-        imagen_url = form.imagen.data.strip() if form.imagen.data and form.imagen.data.strip() else servicio.get("imagen", "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80")
-
-        update_service(id, {
-            "nombre": form.nombre.data,
-            "descripcion": form.descripcion.data,
-            "precio": float(form.precio.data),
-            "imagen": imagen_url,
-            "estado": form.estado.data
-        })
-        flash(f'Servicio "{form.nombre.data}" actualizado correctamente.', 'success')
-        return redirect(url_for('servicios'))
-    
-    return render_template('formulario_servicio.html', form=form, editando=True, id=id)
-
-
-@app.route('/servicios/eliminar/<int:id>', methods=['POST', 'GET'])
-@app.route('/servicio/eliminar/<int:id>', methods=['POST', 'GET'])
-def eliminar_servicio(id):
-    servicio = get_service(id)
-    if servicio is not None:
-        nombre = servicio['nombre']
-        delete_service(id)
-        flash(f'Servicio "{nombre}" eliminado correctamente.', 'success')
-    else:
-        flash('El servicio solicitado no existe.', 'danger')
-    return redirect(url_for('servicios'))
+def documentos_facturacion():
+    return list_invoices() + COTIZACIONES_INICIALES
 
 
 # ---------- RUTAS CRUD: PROVEEDORES ----------
@@ -324,7 +77,7 @@ def eliminar_servicio(id):
 def nuevo_proveedor():
     form = ProveedorForm()
     if form.validate_on_submit():
-        lista_proveedores.append({
+        create_provider({
             "nombre": form.nombre.data,
             "servicio": form.servicio.data,
             "sitio": form.sitio.data,
@@ -337,20 +90,20 @@ def nuevo_proveedor():
 
 @app.route('/proveedores/editar/<int:id>', methods=['GET', 'POST'])
 def editar_proveedor(id):
-    if id < 0 or id >= len(lista_proveedores):
+    proveedor = get_provider(id)
+    if proveedor is None:
         flash('El proveedor solicitado no existe.', 'danger')
         return redirect(url_for('proveedores'))
-    
-    proveedor = lista_proveedores[id]
+
     form = ProveedorForm(data=proveedor) if request.method == 'GET' else ProveedorForm()
     
     if form.validate_on_submit():
-        lista_proveedores[id] = {
+        update_provider(id, {
             "nombre": form.nombre.data,
             "servicio": form.servicio.data,
             "sitio": form.sitio.data,
             "estado": form.estado.data
-        }
+        })
         flash(f'Proveedor "{form.nombre.data}" actualizado correctamente.', 'success')
         return redirect(url_for('proveedores'))
     
@@ -359,9 +112,10 @@ def editar_proveedor(id):
 
 @app.route('/proveedores/eliminar/<int:id>', methods=['POST', 'GET'])
 def eliminar_proveedor(id):
-    if 0 <= id < len(lista_proveedores):
-        nombre = lista_proveedores[id]['nombre']
-        lista_proveedores.pop(id)
+    proveedor = get_provider(id)
+    if proveedor is not None:
+        nombre = proveedor['nombre']
+        delete_provider(id)
         flash(f'Proveedor "{nombre}" eliminado correctamente.', 'success')
     else:
         flash('El proveedor solicitado no existe.', 'danger')
@@ -372,18 +126,21 @@ def eliminar_proveedor(id):
 
 @app.route('/facturacion/nueva', methods=['GET', 'POST'])
 def nueva_factura():
+    tipo_solicitado = request.form.get('tipo') if request.method == 'POST' else request.args.get(
+        'tipo', 'Cotizacion' if request.args.get('servicio_id') is not None else 'Factura'
+    )
     form = FacturacionForm()
-    tipo_solicitado = request.args.get('tipo', 'Cotizacion' if request.args.get('servicio_id') is not None else 'Factura')
+    configurar_estados_documento(form, tipo_solicitado)
     
     # Sugerir valores por defecto si es GET
     if request.method == 'GET':
         form.tipo.data = tipo_solicitado
         if tipo_solicitado == 'Cotizacion':
-            form.numero.data = f"COT-2026-{len(lista_facturas) + 1:04d}"
+            form.numero.data = f"COT-2026-{len(COTIZACIONES_INICIALES) + 1:04d}"
             form.validez.data = "15 días calendario"
             form.estado.data = "En revision"
         else:
-            form.numero.data = f"001-001-{len(lista_facturas) + 1:04d}"
+            form.numero.data = f"001-001-{len(list_invoices()) + 1:04d}"
             form.validez.data = "30 días"
             form.estado.data = "Pendiente"
         form.fecha.data = str(date.today())
@@ -411,7 +168,7 @@ def nueva_factura():
         if tipo_doc == 'Factura' and saldo_val <= 0 and estado_final == 'Pendiente':
             estado_final = 'Pagada'
 
-        lista_facturas.append({
+        documento = {
             "tipo": tipo_doc,
             "numero": form.numero.data,
             "cliente": form.cliente.data,
@@ -425,7 +182,11 @@ def nueva_factura():
             "saldo_pendiente": saldo_val,
             "estado": estado_final,
             "notas": form.notas.data or ("Propuesta comercial emitida por NexoDigital." if tipo_doc == 'Cotizacion' else "Comprobante de venta de servicios digitales NexoDigital.")
-        })
+        }
+        if tipo_doc == 'Factura':
+            create_invoice(documento)
+        else:
+            COTIZACIONES_INICIALES.append(documento)
         
         nombre_doc = "Cotización" if tipo_doc == 'Cotizacion' else "Factura"
         flash(f'{nombre_doc} "{form.numero.data}" guardada exitosamente.', 'success')
@@ -443,12 +204,14 @@ def nueva_factura():
 
 @app.route('/facturacion/editar/<int:id>', methods=['GET', 'POST'])
 def editar_factura(id):
-    if id < 0 or id >= len(lista_facturas):
+    documentos = documentos_facturacion()
+    if id < 0 or id >= len(documentos):
         flash('El documento solicitado no existe.', 'danger')
         return redirect(url_for('facturacion'))
     
-    factura = lista_facturas[id]
+    factura = documentos[id]
     form = FacturacionForm(data=factura) if request.method == 'GET' else FacturacionForm()
+    configurar_estados_documento(form, request.form.get('tipo', factura.get('tipo', 'Factura')))
 
     if request.method == 'GET' and 'servicios_detalle' in factura:
         form.servicios_json.data = json.dumps(factura['servicios_detalle'])
@@ -468,7 +231,7 @@ def editar_factura(id):
         saldo_val = float(form.saldo_pendiente.data) if form.saldo_pendiente.data is not None else max(0.0, total_val - anticipo_val)
         tipo_doc = form.tipo.data
 
-        lista_facturas[id] = {
+        documento = {
             "tipo": tipo_doc,
             "numero": form.numero.data,
             "cliente": form.cliente.data,
@@ -483,6 +246,10 @@ def editar_factura(id):
             "estado": form.estado.data,
             "notas": form.notas.data or "Documento generado por NexoDigital."
         }
+        if factura.get('_persistida'):
+            update_invoice(factura['_db_id'], documento)
+        else:
+            COTIZACIONES_INICIALES[COTIZACIONES_INICIALES.index(factura)] = documento
         nombre_doc = "Cotización" if tipo_doc == 'Cotizacion' else "Factura"
         flash(f'{nombre_doc} "{form.numero.data}" actualizada correctamente.', 'success')
         return redirect(url_for('facturacion'))
@@ -500,11 +267,15 @@ def editar_factura(id):
 
 @app.route('/facturacion/eliminar/<int:id>', methods=['POST', 'GET'])
 def eliminar_factura(id):
-    if 0 <= id < len(lista_facturas):
-        doc = lista_facturas[id]
+    documentos = documentos_facturacion()
+    if 0 <= id < len(documentos):
+        doc = documentos[id]
         tipo_str = "Cotización" if doc.get('tipo') == 'Cotizacion' else "Factura"
         numero = doc['numero']
-        lista_facturas.pop(id)
+        if doc.get('_persistida'):
+            delete_invoice(doc['_db_id'])
+        else:
+            COTIZACIONES_INICIALES.remove(doc)
         flash(f'{tipo_str} "{numero}" eliminada correctamente.', 'success')
     else:
         flash('El documento solicitado no existe.', 'danger')
@@ -513,11 +284,12 @@ def eliminar_factura(id):
 
 @app.route('/facturacion/comprobante/<int:id>')
 def ver_comprobante(id):
-    if id < 0 or id >= len(lista_facturas):
+    documentos = documentos_facturacion()
+    if id < 0 or id >= len(documentos):
         flash('El documento solicitado no existe.', 'danger')
         return redirect(url_for('facturacion'))
     
-    factura = lista_facturas[id]
+    factura = documentos[id]
     return render_template('comprobante_factura.html', factura=factura, id=id)
 
 

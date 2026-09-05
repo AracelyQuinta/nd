@@ -27,12 +27,31 @@ def _state_id(connection, entity, name):
     return row[0]
 
 
-def initialize_database(seed_services=None):
+def initialize_database(seed_services=None, seed_invoices=None, seed_providers=None):
     connection = get_connection()
     try:
+        legacy_clients = False
+        legacy_locations = False
         connection.execute("DROP TABLE IF EXISTS facturas_legacy")
         connection.execute("DROP TABLE IF EXISTS factura_detalle_legacy")
         connection.execute("DROP TABLE IF EXISTS proveedores_legacy")
+        client_columns = _table_columns(connection, "clientes")
+        if "servicio_contratado_id" in client_columns:
+            if _table_columns(connection, "facturas"):
+                connection.execute("ALTER TABLE facturas RENAME TO facturas_clients_legacy")
+            if _table_columns(connection, "factura_detalle"):
+                connection.execute("ALTER TABLE factura_detalle RENAME TO factura_detalle_clients_legacy")
+            connection.execute("ALTER TABLE clientes RENAME TO clientes_legacy")
+            legacy_clients = True
+        if "barrio" in _table_columns(connection, "ubicaciones"):
+            if _table_columns(connection, "facturas"):
+                connection.execute("ALTER TABLE facturas RENAME TO facturas_locations_legacy")
+            if _table_columns(connection, "factura_detalle"):
+                connection.execute("ALTER TABLE factura_detalle RENAME TO factura_detalle_locations_legacy")
+            if _table_columns(connection, "clientes"):
+                connection.execute("ALTER TABLE clientes RENAME TO clientes_locations_legacy")
+            connection.execute("ALTER TABLE ubicaciones RENAME TO ubicaciones_legacy")
+            legacy_locations = True
         legacy_products = None
         legacy_providers = None
         if _table_columns(connection, "productos") and "tiempo_estimado" in _table_columns(connection, "productos"):
@@ -106,20 +125,11 @@ def initialize_database(seed_services=None):
         )
         connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS servicios_contratados (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL UNIQUE
-            )
-            """
-        )
-        connection.execute(
-            """
             CREATE TABLE IF NOT EXISTS ubicaciones (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 provincia TEXT NOT NULL,
                 canton TEXT NOT NULL,
-                barrio TEXT NOT NULL,
-                UNIQUE (provincia, canton, barrio)
+                UNIQUE (provincia, canton)
             )
             """
         )
@@ -130,10 +140,8 @@ def initialize_database(seed_services=None):
                 nombre TEXT NOT NULL,
                 celular TEXT NOT NULL CHECK (length(celular) = 10 AND celular NOT GLOB '*[^0-9]*'),
                 tipo_negocio_id INTEGER NOT NULL,
-                servicio_contratado_id INTEGER NOT NULL,
                 ubicacion_id INTEGER NOT NULL,
                 FOREIGN KEY (tipo_negocio_id) REFERENCES tipos_negocio(id),
-                FOREIGN KEY (servicio_contratado_id) REFERENCES servicios_contratados(id),
                 FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(id)
             )
             """
@@ -197,6 +205,33 @@ def initialize_database(seed_services=None):
             )
             """
         )
+        if any(row[2] == "facturas_legacy" for row in connection.execute("PRAGMA foreign_key_list(pagos)").fetchall()):
+            connection.execute("ALTER TABLE pagos RENAME TO pagos_legacy")
+            connection.execute(
+                """
+                CREATE TABLE pagos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    factura_id INTEGER NOT NULL,
+                    fecha TEXT NOT NULL,
+                    monto REAL NOT NULL CHECK (monto > 0),
+                    metodo_pago TEXT NOT NULL,
+                    estado_id INTEGER NOT NULL,
+                    referencia TEXT,
+                    notas TEXT,
+                    FOREIGN KEY (factura_id) REFERENCES facturas(id) ON DELETE CASCADE,
+                    FOREIGN KEY (estado_id) REFERENCES estados(id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO pagos
+                    (id, factura_id, fecha, monto, metodo_pago, estado_id, referencia, notas)
+                SELECT id, factura_id, fecha, monto, metodo_pago, estado_id, referencia, notas
+                FROM pagos_legacy
+                """
+            )
+            connection.execute("DROP TABLE pagos_legacy")
         connection.execute("DROP VIEW IF EXISTS resumen_facturas")
         connection.execute(
             """
@@ -275,10 +310,98 @@ def initialize_database(seed_services=None):
                     for service in seed_services
                 ],
             )
+        if seed_invoices and connection.execute("SELECT COUNT(*) FROM facturas").fetchone()[0] == 0:
+            for invoice in seed_invoices:
+                if invoice.get("tipo") != "Factura":
+                    continue
+                _insert_invoice(connection, invoice)
+        if seed_providers and connection.execute("SELECT COUNT(*) FROM proveedores").fetchone()[0] == 0:
+            connection.executemany(
+                "INSERT INTO proveedores (nombre, servicio, sitio, estado_id) VALUES (?, ?, ?, ?)",
+                [
+                    (
+                        provider["nombre"],
+                        provider["servicio"],
+                        provider["sitio"],
+                        _state_id(connection, "proveedor", provider["estado"]),
+                    )
+                    for provider in seed_providers
+                ],
+            )
+        if legacy_clients:
+            connection.execute(
+                """
+                INSERT INTO clientes (id, nombre, celular, tipo_negocio_id, ubicacion_id)
+                SELECT id, nombre, celular, tipo_negocio_id, ubicacion_id
+                FROM clientes_legacy
+                """
+            )
+            if _table_columns(connection, "facturas_clients_legacy"):
+                connection.execute(
+                    """
+                    INSERT INTO facturas
+                        (id, tipo, numero, cliente_id, fecha, validez, estado_id, notas)
+                    SELECT id, tipo, numero, cliente_id, fecha, validez, estado_id, notas
+                    FROM facturas_clients_legacy
+                    """
+                )
+            if _table_columns(connection, "factura_detalle_clients_legacy"):
+                connection.execute(
+                    """
+                    INSERT INTO factura_detalle
+                        (id, factura_id, servicio_id, descripcion, precio_unitario, cantidad, ajuste)
+                    SELECT id, factura_id, servicio_id, descripcion, precio_unitario, cantidad, ajuste
+                    FROM factura_detalle_clients_legacy
+                    """
+                )
+        if legacy_locations:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO ubicaciones (id, provincia, canton)
+                SELECT MIN(id), provincia, canton
+                FROM ubicaciones_legacy
+                GROUP BY provincia, canton
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO clientes (id, nombre, celular, tipo_negocio_id, ubicacion_id)
+                SELECT c.id, c.nombre, c.celular, c.tipo_negocio_id, u.id
+                FROM clientes_locations_legacy AS c
+                JOIN ubicaciones_legacy AS old_u ON old_u.id = c.ubicacion_id
+                JOIN ubicaciones AS u
+                  ON u.provincia = old_u.provincia AND u.canton = old_u.canton
+                """
+            )
+            if _table_columns(connection, "facturas_locations_legacy"):
+                connection.execute(
+                    """
+                    INSERT INTO facturas
+                        (id, tipo, numero, cliente_id, fecha, validez, estado_id, notas)
+                    SELECT id, tipo, numero, cliente_id, fecha, validez, estado_id, notas
+                    FROM facturas_locations_legacy
+                    """
+                )
+            if _table_columns(connection, "factura_detalle_locations_legacy"):
+                connection.execute(
+                    """
+                    INSERT INTO factura_detalle
+                        (id, factura_id, servicio_id, descripcion, precio_unitario, cantidad, ajuste)
+                    SELECT id, factura_id, servicio_id, descripcion, precio_unitario, cantidad, ajuste
+                    FROM factura_detalle_locations_legacy
+                    """
+                )
         connection.execute("DROP TABLE IF EXISTS facturas_legacy")
         connection.execute("DROP TABLE IF EXISTS factura_detalle_legacy")
         connection.execute("DROP TABLE IF EXISTS proveedores_legacy")
         connection.execute("DROP TABLE IF EXISTS clientes_legacy")
+        connection.execute("DROP TABLE IF EXISTS facturas_clients_legacy")
+        connection.execute("DROP TABLE IF EXISTS factura_detalle_clients_legacy")
+        connection.execute("DROP TABLE IF EXISTS clientes_locations_legacy")
+        connection.execute("DROP TABLE IF EXISTS ubicaciones_legacy")
+        connection.execute("DROP TABLE IF EXISTS facturas_locations_legacy")
+        connection.execute("DROP TABLE IF EXISTS factura_detalle_locations_legacy")
+        connection.execute("DROP TABLE IF EXISTS servicios_contratados")
         connection.commit()
     finally:
         connection.close()
@@ -383,14 +506,14 @@ def _catalog_id(connection, table, name):
 
 def _location_id(connection, client):
     row = connection.execute(
-        "SELECT id FROM ubicaciones WHERE provincia = ? AND canton = ? AND barrio = ?",
-        (client["provincia"], client["canton"], client["barrio"]),
+        "SELECT id FROM ubicaciones WHERE provincia = ? AND canton = ?",
+        (client["provincia"], client["canton"]),
     ).fetchone()
     if row:
         return row[0]
     cursor = connection.execute(
-        "INSERT INTO ubicaciones (provincia, canton, barrio) VALUES (?, ?, ?)",
-        (client["provincia"], client["canton"], client["barrio"]),
+        "INSERT INTO ubicaciones (provincia, canton) VALUES (?, ?)",
+        (client["provincia"], client["canton"]),
     )
     return cursor.lastrowid
 
@@ -400,12 +523,11 @@ def list_clients():
     try:
         rows = connection.execute(
             """
-            SELECT c.id, c.nombre, c.celular, tn.nombre AS negocio,
-                   sc.nombre AS servicio, u.provincia, u.canton, u.barrio,
-                   u.provincia || ', ' || u.canton || ', ' || u.barrio AS ciudad
+                     SELECT c.id, c.nombre, c.celular, tn.nombre AS negocio,
+                         u.provincia, u.canton,
+                         u.provincia || ', ' || u.canton AS ciudad
             FROM clientes AS c
             JOIN tipos_negocio AS tn ON tn.id = c.tipo_negocio_id
-            JOIN servicios_contratados AS sc ON sc.id = c.servicio_contratado_id
             JOIN ubicaciones AS u ON u.id = c.ubicacion_id
             ORDER BY c.id
             """
@@ -424,14 +546,13 @@ def create_client(client):
     connection = get_connection()
     try:
         negocio_id = _catalog_id(connection, "tipos_negocio", client["negocio"])
-        servicio_id = _catalog_id(connection, "servicios_contratados", client["servicio"])
         ubicacion_id = _location_id(connection, client)
         cursor = connection.execute(
             """
-            INSERT INTO clientes (nombre, celular, tipo_negocio_id, servicio_contratado_id, ubicacion_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO clientes (nombre, celular, tipo_negocio_id, ubicacion_id)
+            VALUES (?, ?, ?, ?)
             """,
-            (client["nombre"], client["celular"], negocio_id, servicio_id, ubicacion_id),
+            (client["nombre"], client["celular"], negocio_id, ubicacion_id),
         )
         connection.commit()
         return cursor.lastrowid
@@ -443,16 +564,14 @@ def update_client(client_id, client):
     connection = get_connection()
     try:
         negocio_id = _catalog_id(connection, "tipos_negocio", client["negocio"])
-        servicio_id = _catalog_id(connection, "servicios_contratados", client["servicio"])
         ubicacion_id = _location_id(connection, client)
         cursor = connection.execute(
             """
             UPDATE clientes
-            SET nombre = ?, celular = ?, tipo_negocio_id = ?,
-                servicio_contratado_id = ?, ubicacion_id = ?
+            SET nombre = ?, celular = ?, tipo_negocio_id = ?, ubicacion_id = ?
             WHERE id = ?
             """,
-            (client["nombre"], client["celular"], negocio_id, servicio_id, ubicacion_id, client_id),
+            (client["nombre"], client["celular"], negocio_id, ubicacion_id, client_id),
         )
         connection.commit()
         return cursor.rowcount > 0
@@ -464,6 +583,245 @@ def delete_client(client_id):
     connection = get_connection()
     try:
         cursor = connection.execute("DELETE FROM clientes WHERE id = ?", (client_id,))
+        connection.commit()
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
+
+
+def list_providers():
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT p.id, p.nombre, p.servicio, p.sitio, e.nombre AS estado
+            FROM proveedores AS p
+            JOIN estados AS e ON e.id = p.estado_id
+            ORDER BY p.id
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        connection.close()
+
+
+def get_provider(provider_id):
+    connection = get_connection()
+    try:
+        row = connection.execute(
+            """
+            SELECT p.id, p.nombre, p.servicio, p.sitio, e.nombre AS estado
+            FROM proveedores AS p
+            JOIN estados AS e ON e.id = p.estado_id
+            WHERE p.id = ?
+            """,
+            (provider_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        connection.close()
+
+
+def create_provider(provider):
+    connection = get_connection()
+    try:
+        cursor = connection.execute(
+            """
+            INSERT INTO proveedores (nombre, servicio, sitio, estado_id)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                provider["nombre"],
+                provider["servicio"],
+                provider["sitio"],
+                _state_id(connection, "proveedor", provider["estado"]),
+            ),
+        )
+        connection.commit()
+        return cursor.lastrowid
+    finally:
+        connection.close()
+
+
+def update_provider(provider_id, provider):
+    connection = get_connection()
+    try:
+        cursor = connection.execute(
+            """
+            UPDATE proveedores
+            SET nombre = ?, servicio = ?, sitio = ?, estado_id = ?
+            WHERE id = ?
+            """,
+            (
+                provider["nombre"],
+                provider["servicio"],
+                provider["sitio"],
+                _state_id(connection, "proveedor", provider["estado"]),
+                provider_id,
+            ),
+        )
+        connection.commit()
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
+
+
+def delete_provider(provider_id):
+    connection = get_connection()
+    try:
+        cursor = connection.execute("DELETE FROM proveedores WHERE id = ?", (provider_id,))
+        connection.commit()
+        return cursor.rowcount > 0
+    finally:
+        connection.close()
+
+
+def _invoice_client_id(connection, name):
+    row = connection.execute("SELECT id FROM clientes WHERE nombre = ?", (name,)).fetchone()
+    if row:
+        return row[0]
+    business_id = _catalog_id(connection, "tipos_negocio", "Cliente de factura")
+    location_id = _location_id(connection, {"provincia": "Pichincha", "canton": "Quito"})
+    cursor = connection.execute(
+        """
+        INSERT INTO clientes (nombre, celular, tipo_negocio_id, ubicacion_id)
+        VALUES (?, ?, ?, ?)
+        """,
+        (name, "0999999999", business_id, location_id),
+    )
+    return cursor.lastrowid
+
+
+def _invoice_service_id(connection, detail):
+    name = detail.get("servicio") or detail.get("descripcion") or "Servicio personalizado"
+    row = connection.execute("SELECT id FROM servicios WHERE nombre = ?", (name,)).fetchone()
+    if row:
+        return row[0], name
+    active_id = _state_id(connection, "servicio", "Activo")
+    cursor = connection.execute(
+        """
+        INSERT INTO servicios (nombre, descripcion, precio, imagen, estado_id)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (name, name, float(detail.get("precio", 0)), "", active_id),
+    )
+    return cursor.lastrowid, name
+
+
+def _insert_invoice(connection, invoice):
+    client_id = _invoice_client_id(connection, invoice["cliente"])
+    state_id = _state_id(connection, "factura", invoice["estado"])
+    cursor = connection.execute(
+        """
+        INSERT INTO facturas (tipo, numero, cliente_id, fecha, validez, estado_id, notas)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "Factura",
+            invoice["numero"],
+            client_id,
+            invoice["fecha"],
+            invoice.get("validez"),
+            state_id,
+            invoice.get("notas"),
+        ),
+    )
+    invoice_id = cursor.lastrowid
+    for detail in invoice.get("servicios_detalle", []):
+        service_id, description = _invoice_service_id(connection, detail)
+        connection.execute(
+            """
+            INSERT INTO factura_detalle
+                (factura_id, servicio_id, descripcion, precio_unitario, cantidad, ajuste)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                invoice_id,
+                service_id,
+                description,
+                float(detail.get("precio", 0)),
+                int(detail.get("cantidad", 1)),
+                float(detail.get("ajuste", 0)),
+            ),
+        )
+    anticipo = float(invoice.get("anticipo", 0) or 0)
+    if anticipo > 0:
+        connection.execute(
+            """
+            INSERT INTO pagos (factura_id, fecha, monto, metodo_pago, estado_id)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (invoice_id, invoice["fecha"], anticipo, "Abono", _state_id(connection, "pago", "Registrado")),
+        )
+    return invoice_id
+
+
+def create_invoice(invoice):
+    connection = get_connection()
+    try:
+        invoice_id = _insert_invoice(connection, invoice)
+        connection.commit()
+        return invoice_id
+    finally:
+        connection.close()
+
+
+def _invoice_details(connection, invoice_id):
+    rows = connection.execute(
+        """
+        SELECT descripcion AS servicio, precio_unitario AS precio, cantidad, ajuste,
+               (precio_unitario + ajuste) * cantidad AS total
+        FROM factura_detalle
+        WHERE factura_id = ?
+        ORDER BY id
+        """,
+        (invoice_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_invoices():
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT f.id AS _db_id, f.tipo, f.numero, c.nombre AS cliente, f.fecha,
+                   f.validez, f.notas, e.nombre AS estado,
+                   r.subtotal, r.iva, r.monto, r.anticipo, r.saldo_pendiente
+            FROM facturas AS f
+            JOIN clientes AS c ON c.id = f.cliente_id
+            JOIN estados AS e ON e.id = f.estado_id
+            JOIN resumen_facturas AS r ON r.id = f.id
+            ORDER BY f.id
+            """
+        ).fetchall()
+        invoices = []
+        for row in rows:
+            invoice = dict(row)
+            invoice["servicios_detalle"] = _invoice_details(connection, row["_db_id"])
+            invoice["_persistida"] = True
+            invoices.append(invoice)
+        return invoices
+    finally:
+        connection.close()
+
+
+def update_invoice(invoice_id, invoice):
+    connection = get_connection()
+    try:
+        connection.execute("DELETE FROM factura_detalle WHERE factura_id = ?", (invoice_id,))
+        connection.execute("DELETE FROM pagos WHERE factura_id = ?", (invoice_id,))
+        connection.execute("DELETE FROM facturas WHERE id = ?", (invoice_id,))
+        _insert_invoice(connection, invoice)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def delete_invoice(invoice_id):
+    connection = get_connection()
+    try:
+        cursor = connection.execute("DELETE FROM facturas WHERE id = ?", (invoice_id,))
         connection.commit()
         return cursor.rowcount > 0
     finally:

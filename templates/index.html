@@ -17,7 +17,7 @@
             {{ mensaje }}
         </p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="{{ url_for('servicios') }}" class="btn btn-verde btn-lg shadow-sm">
+            <a href="{{ url_for('servicios.listar') }}" class="btn btn-verde btn-lg shadow-sm">
                 <i class="bi bi-grid me-2"></i>Ver Catálogo con Precios
             </a>
             <a href="{{ url_for('nueva_factura') }}" class="btn btn-outline-light btn-lg">
@@ -169,7 +169,7 @@
         </div>
 
         <div class="text-center mt-5">
-            <a href="{{ url_for('servicios') }}" class="btn btn-outline-brand btn-lg">
+            <a href="{{ url_for('servicios.listar') }}" class="btn btn-outline-brand btn-lg">
                 <i class="bi bi-arrow-right-circle me-2"></i>Ver catálogo completo y opciones de gestión
             </a>
         </div>

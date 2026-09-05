@@ -11,7 +11,7 @@
             Soluciones digitales transparentes con precios claros, tiempos de entrega garantizados y soporte técnico personalizado.
         </p>
         <div>
-            <a href="{{ url_for('nuevo_servicio') }}" class="btn btn-verde btn-lg shadow-sm">
+            <a href="{{ url_for('servicios.nuevo') }}" class="btn btn-verde btn-lg shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Registrar nuevo servicio
             </a>
         </div>
@@ -29,7 +29,7 @@
                 <span class="badge bg-navy text-white px-3 py-2 rounded-pill">
                     {{ servicios|length }} servicios
                 </span>
-                <a href="{{ url_for('nuevo_servicio') }}" class="btn btn-outline-brand btn-sm">
+                <a href="{{ url_for('servicios.nuevo') }}" class="btn btn-outline-brand btn-sm">
                     <i class="bi bi-plus-lg me-1"></i>Nuevo
                 </a>
             </div>
@@ -77,10 +77,10 @@
                             <a href="{{ url_for('nueva_factura', servicio_id=servicio.id) }}" class="btn btn-verde btn-sm rounded-pill flex-grow-1" title="Facturar o cotizar este servicio">
                                 <i class="bi bi-receipt me-1"></i>Facturar
                             </a>
-                            <a href="{{ url_for('editar_servicio', id=servicio.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar servicio">
+                            <a href="{{ url_for('servicios.editar', servicio_id=servicio.id) }}" class="btn btn-outline-primary btn-sm rounded-pill" title="Editar servicio">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
-                            <form method="POST" action="{{ url_for('eliminar_servicio', id=servicio.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el servicio «{{ servicio.nombre }}»?');" class="d-inline">
+                            <form method="POST" action="{{ url_for('servicios.eliminar', servicio_id=servicio.id) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el servicio «{{ servicio.nombre }}»?');" class="d-inline">
                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill" title="Eliminar servicio">
                                     <i class="bi bi-trash-fill"></i>
                                 </button>

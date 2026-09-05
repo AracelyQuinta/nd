@@ -118,14 +118,14 @@
                                 </label>
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-9">
-                                        <select id="selectorCatalogo" class="form-select">
+                                        <select id="selectorCatalogo" class="form-select" data-detalle="{{ detalle_existente|default([], true)|tojson|forceescape }}">
                                             <option value="">-- Selecciona un servicio del catálogo --</option>
                                             {% for s in servicios_catalogo %}
                                                 <option value="{{ s.id }}"
                                                         data-nombre="{{ s.nombre }}"
                                                     data-precio="{{ s.precio or 0.0 }}"
                                                         {% if servicio_seleccionado_id is defined and servicio_seleccionado_id == s.id %}selected{% endif %}>
-                                                    {{ s.nombre }} — ${{ "%.2f"|format(s.precio or 0.0) }} ({{ s.tiempo_estimado or '2 a 5 días' }})
+                                                    {{ s.nombre }} — ${{ "%.2f"|format(s.precio or 0.0) }}
                                                 </option>
                                             {% endfor %}
                                         </select>
@@ -204,13 +204,13 @@
                             <div class="box-anticipo mb-3">
                                 <div class="mb-2">
                                     <label class="form-label fw-bold text-navy small mb-1">
-                                        <i class="bi bi-cash-coin text-emerald me-1"></i>Anticipo / Abono Recibido ($)
+                                        <i class="bi bi-cash-coin text-emerald me-1"></i>Abono recibido ($)
                                     </label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text">$</span>
                                         {{ form.anticipo(class="form-control fw-bold", id="inputAnticipo", step="0.01", min="0", value="0.00") }}
                                     </div>
-                                    <small class="text-muted" style="font-size: 0.75rem;">Monto pagado por el cliente por adelantado.</small>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Monto pagado por el cliente.</small>
                                 </div>
 
                                 <div id="boxDiferencia" class="saldo-alerta mt-2">
@@ -255,16 +255,13 @@
 <!-- JavaScript Reactivo de Facturación y Cotización -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    let itemsFactura = [];
-
-    {% if detalle_existente and detalle_existente|length > 0 %}
-        itemsFactura = {{ detalle_existente | tojson }};
-    {% endif %}
+    const selectorCatalogo = document.getElementById("selectorCatalogo");
+    let itemsFactura = JSON.parse(selectorCatalogo.dataset.detalle || "[]");
 
     const selectTipoDoc = document.getElementById("selectTipoDoc");
+    const selectEstadoDoc = document.getElementById("selectEstadoDoc");
     const inputNumeroDoc = document.getElementById("inputNumeroDoc");
     const lblTituloPanel = document.getElementById("lblTituloPanel");
-    const selectorCatalogo = document.getElementById("selectorCatalogo");
     const btnAgregar = document.getElementById("btnAgregarServicio");
     const cuerpoTabla = document.getElementById("cuerpoTablaItems");
     const mensajeSinItems = document.getElementById("mensajeSinItems");
@@ -283,6 +280,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const boxDiferencia = document.getElementById("boxDiferencia");
     const lblTextoSaldo = document.getElementById("lblTextoSaldo");
     const inputJson = document.getElementById("servicios_json");
+
+    function actualizarEstados() {
+        const estadosPermitidos = selectTipoDoc.value === "Cotizacion"
+            ? ["Aprobada", "En revision"]
+            : ["Pagada", "Pendiente", "Vencida"];
+
+        Array.from(selectEstadoDoc.options).forEach((option) => {
+            option.hidden = !estadosPermitidos.includes(option.value);
+        });
+
+        if (!estadosPermitidos.includes(selectEstadoDoc.value)) {
+            selectEstadoDoc.value = estadosPermitidos[0];
+        }
+    }
 
     // Renderizar filas de la tabla con campos espaciosos
     function renderizarTabla() {
@@ -424,14 +435,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     inputAnticipo.addEventListener("input", recalcularTotales);
     chkIva.addEventListener("change", recalcularTotales);
+    selectTipoDoc.addEventListener("change", actualizarEstados);
 
-    // Auto-agregar servicio si viene por URL query
-    {% if servicio_seleccionado_id is defined and servicio_seleccionado_id is not none %}
-        if (itemsFactura.length === 0 && selectorCatalogo.selectedIndex > 0) {
-            btnAgregar.click();
-        }
-    {% endif %}
+    // Auto-agregar el servicio seleccionado desde el catálogo.
+    if (itemsFactura.length === 0 && selectorCatalogo.selectedIndex > 0) {
+        btnAgregar.click();
+    }
 
+    actualizarEstados();
     renderizarTabla();
 });
 </script>

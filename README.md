@@ -86,7 +86,9 @@ La aplicación crea automáticamente `data/nexodigital.db` al iniciar. La capa d
 ### MVC y tercera forma normal
 
 - **Modelo:** `database.py` contiene la conexión, el esquema, las relaciones y el repositorio de servicios.
-- **Controlador:** `app.py` recibe las peticiones, valida formularios y coordina el modelo con las vistas.
+- **Modelo:** `models/servicio.py` y `models/cliente.py` exponen las operaciones de dominio.
+- **Controlador:** `controllers/servicios.py` y `controllers/clientes.py` contienen los Blueprints y coordinan formularios, modelos y vistas.
+- `app.py` registra los Blueprints y conserva los módulos anteriores que aún están en transición.
 - **Vista:** las plantillas Jinja2 muestran los datos y heredan de `base.html`.
 - Las tablas almacenan atributos que dependen de su clave primaria y usan claves foráneas para las relaciones.
 - Los importes de facturación se calculan en `resumen_facturas` a partir de `factura_detalle` y `pagos`, evitando duplicar datos derivados.
@@ -163,6 +165,12 @@ Para comprobar la persistencia, registra un servicio en `/servicios/nuevo`, det�
 NEXODIGITAL/
 ├── app.py                      # Controlador principal y rutas de la aplicación Flask
 ├── database.py                 # Conexiones, inicialización y consultas SQLite
+├── models/                     # Modelos del dominio
+│   ├── servicio.py
+│   └── cliente.py
+├── controllers/                # Blueprints y controladores Flask
+│   ├── servicios.py
+│   └── clientes.py
 ├── requirements.txt            # Dependencias del proyecto
 ├── data/
 │   └── nexodigital.db           # Base de datos local persistente
