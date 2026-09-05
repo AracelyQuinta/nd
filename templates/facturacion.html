@@ -90,7 +90,7 @@
                                 <td class="py-3 text-end">
                                     {% set saldo = doc.saldo_pendiente if doc.saldo_pendiente is defined else (doc.monto - (doc.anticipo or 0.0)) %}
                                     {% if saldo > 0 %}
-                                        <span class="badge bg-amber-subtle text-amber fw-bold border border-warning px-2 py-1">
+                                        <span class="badge badge-proximamente px-2 py-1">
                                             ${{ "%.2f"|format(saldo) }}
                                         </span>
                                     {% else %}

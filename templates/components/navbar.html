@@ -21,7 +21,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['servicios', 'nuevo_servicio', 'editar_servicio'] else '' }}" href="{{ url_for('servicios') }}">
+                    <a class="nav-link px-2 {{ 'active' if request.blueprint == 'servicios' else '' }}" href="{{ url_for('servicios.listar') }}">
                         <i class="bi bi-grid me-1"></i>Servicios
                     </a>
                 </li>
@@ -31,7 +31,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 {{ 'active' if request.endpoint in ['clientes', 'nuevo_cliente', 'editar_cliente'] else '' }}" href="{{ url_for('clientes') }}">
+                    <a class="nav-link px-2 {{ 'active' if request.blueprint == 'clientes' else '' }}" href="{{ url_for('clientes.listar') }}">
                         <i class="bi bi-people me-1"></i>Clientes
                     </a>
                 </li>

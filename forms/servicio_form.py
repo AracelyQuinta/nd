@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, FloatField, BooleanField, SubmitField
+from wtforms import StringField, TextAreaField, FloatField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
@@ -12,10 +12,6 @@ class ServicioForm(FlaskForm):
         DataRequired(message='Ingresa un precio válido'),
         NumberRange(min=0.01, message='El precio debe ser mayor a 0')
     ])
-    tiempo_estimado = StringField('Tiempo estimado de entrega', validators=[
-        Optional(),
-        Length(max=50, message='Máximo 50 caracteres')
-    ])
     imagen = StringField('URL de imagen del servicio (Opcional)', validators=[
         Optional(),
         Length(max=500, message='La URL es demasiado larga')
@@ -24,5 +20,8 @@ class ServicioForm(FlaskForm):
         DataRequired(message='La descripción es obligatoria'),
         Length(min=10, max=500, message='Debe tener entre 10 y 500 caracteres')
     ])
-    disponible = BooleanField('Disponible para contratación')
+    estado = SelectField('Estado del servicio', choices=[
+        ('Activo', 'Activo'),
+        ('Inactivo', 'Inactivo')
+    ], validators=[DataRequired()])
     submit = SubmitField('Guardar servicio')

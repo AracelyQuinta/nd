@@ -57,12 +57,12 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    {{ form.tiempo_estimado.label(class="form-label fw-semibold text-navy") }}
+                                    {{ form.estado.label(class="form-label fw-semibold text-navy") }}
                                     <div class="input-group">
-                                        <span class="input-group-text bg-light"><i class="bi bi-clock-history"></i></span>
-                                        {{ form.tiempo_estimado(class="form-control" + (" is-invalid" if form.tiempo_estimado.errors else ""), placeholder="Ej: 3 a 5 días laborables") }}
+                                        <span class="input-group-text bg-light"><i class="bi bi-toggle-on"></i></span>
+                                        {{ form.estado(class="form-select" + (" is-invalid" if form.estado.errors else "")) }}
                                     </div>
-                                    {% for error in form.tiempo_estimado.errors %}
+                                    {% for error in form.estado.errors %}
                                         <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
                                     {% endfor %}
                                 </div>
@@ -90,17 +90,8 @@
                                 {% endfor %}
                             </div>
 
-                            <div class="mb-4 p-3 bg-light rounded-3 border">
-                                <div class="form-check form-switch mb-0">
-                                    {{ form.disponible(class="form-check-input", role="switch", id="disponibleSwitch") }}
-                                    <label class="form-check-label fw-semibold text-navy" for="disponibleSwitch">
-                                        ¿Servicio disponible inmediatamente para contratación?
-                                    </label>
-                                </div>
-                            </div>
-
                             <div class="d-flex gap-2 pt-2">
-                                <a href="{{ url_for('servicios') }}" class="btn btn-outline-secondary px-4">
+                                <a href="{{ url_for('servicios.listar') }}" class="btn btn-outline-secondary px-4">
                                     <i class="bi bi-arrow-left me-1"></i>Volver
                                 </a>
                                 <button type="submit" class="btn btn-verde flex-grow-1 py-2">
