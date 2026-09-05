@@ -5,6 +5,7 @@ from wtforms.validators import DataRequired, Length, Regexp
 
 class ClienteForm(FlaskForm):
     provincias = [
+        ('', 'Seleccione una provincia'),
         ('Azuay', 'Azuay'),
         ('Bolivar', 'Bolivar'),
         ('Cañar', 'Cañar'),

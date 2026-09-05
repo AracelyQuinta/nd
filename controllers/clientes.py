@@ -18,8 +18,6 @@ def nuevo():
         Cliente.crear(_datos_formulario(form))
         flash("Cliente registrado correctamente.", "success")
         return redirect(url_for("clientes.listar"))
-    if request.method == "GET":
-        form.canton.data = "Lago Agrio"
     return render_template("formulario_cliente.html", form=form, editando=False)
 
 
